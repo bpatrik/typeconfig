@@ -1,0 +1,31 @@
+{
+  "name": "typeconfig",
+  "version": "1.0.0",
+  "description": "Config loader for Typescript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bpatrik/typeconfig.git"
+  },
+  "keywords": [
+    "Typescript",
+    "config"
+  ],
+  "author": "Patrik Braun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bpatrik/typeconfig/issues"
+  },
+  "homepage": "https://github.com/bpatrik/typeconfig#readme",
+  "devDependencies": {
+    "@types/node": "^7.0.5",
+    "@types/optimist": "0.0.29",
+    "typescript": "^2.2.1"
+  },
+  "dependencies": {
+    "optimist": "^0.6.1"
+  }
+}
