@@ -9,39 +9,39 @@ export class ConfigLoader {
      * @param configFilePath Path to the config file. It will be created if not exist
      * @param envAlias Mapping environmental variables to config variables
      */
-    static loadBackendConfig(configObject: any, configFilePath?: string, envAlias: Array<Array<string>> = []) {
-        this.processConfigFile(configFilePath, configObject);
-        this.processArguments(configObject);
-        this.processEnvVariables(configObject, envAlias);
+    static loadBackendConfig(configObject: object, configFilePath?: string, envAlias: Array<Array<string>> = []): void {
+        ConfigLoader.processConfigFile(configFilePath, configObject);
+        ConfigLoader.processArguments(configObject);
+        ConfigLoader.processEnvVariables(configObject, envAlias);
     }
 
-    private static processEnvVariables(configObject: any, envAlias: Array<Array<string>>) {
-        let varAliases = {};
+    private static processEnvVariables(configObject: object, envAlias: Array<Array<string>>): void {
+        const varAliases = {};
         envAlias.forEach((alias) => {
             if (process.env[alias[0]]) {
                 varAliases[alias[1]] = process.env[alias[0]];
             }
         });
         this.processHierarchyVar(configObject, varAliases);
-        this.loadObject(configObject, process.env);
+        this.processHierarchyVar(configObject, process.env);
     };
 
-    private static processArguments(configObject: any) {
-        let argv = optimist.argv;
+    private static processArguments(configObject: object): void {
+        const argv = optimist.argv;
         delete(argv._);
         delete(argv.$0);
         this.processHierarchyVar(configObject, argv);
     };
 
-    private static processHierarchyVar(configObject: any, vars: any) {
-        let config = {};
+    private static processHierarchyVar(configObject: object, vars: object): void {
+        const config = {};
 
         Object.keys(vars).forEach((key) => {
-            let keyArray = key.split("-");
-            let value = vars[key];
+            const keyArray = key.split("-");
+            const value = vars[key];
 
             //recursive settings
-            let setObject = (object, keyArray, value) => {
+            const setObject = (object, keyArray, value) => {
                 let key = keyArray.shift();
                 object[key] = object[key] || {};
 
@@ -67,7 +67,7 @@ export class ConfigLoader {
         this.loadObject(configObject, config);
     }
 
-    private static processConfigFile(configFilePath: string, configObject: any) {
+    private static processConfigFile(configFilePath: string, configObject: object): void {
         if (typeof configFilePath !== 'undefined') {
             if (ConfigLoader.loadConfigFile(configFilePath, configObject) === false) {
                 ConfigLoader.saveConfigFile(configFilePath, configObject);
@@ -75,22 +75,20 @@ export class ConfigLoader {
         }
     };
 
-    private static loadConfigFile(configFilePath, configObject): boolean {
+    private static loadConfigFile(configFilePath: string, configObject: object): boolean {
         if (fs.existsSync(configFilePath) === false) {
             return false;
         }
         try {
-            let config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
-
+            const config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
             this.loadObject(configObject, config);
             return true;
         } catch (err) {
-
         }
         return false;
     }
 
-    private static saveConfigFile(configFilePath, configObject) {
+    public static saveConfigFile(configFilePath: string, configObject: object): void {
         try {
             fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
         } catch (err) {
@@ -98,16 +96,14 @@ export class ConfigLoader {
         }
     }
 
-    private static loadObject(targetObject, sourceObject) {
+    private static loadObject(targetObject: object, sourceObject: object): void {
         Object.keys(sourceObject).forEach((key) => {
             if (typeof targetObject[key] === "undefined") {
                 return;
             }
-
             if (Array.isArray(targetObject[key])) {
                 return targetObject[key] = sourceObject[key];
             }
-
             if (typeof targetObject[key] === "object") {
                 return this.loadObject(targetObject[key], sourceObject[key]);
             }

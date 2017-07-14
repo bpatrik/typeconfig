@@ -1,6 +1,5 @@
 export class WebConfigLoader {
 
-   
     static loadFrontendConfig(targetObject, sourceObject) {
         Object.keys(sourceObject).forEach((key)=> {
             if (typeof targetObject[key] === "undefined") {
