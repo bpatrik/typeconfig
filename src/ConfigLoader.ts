@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as optimist from "optimist";
+import {Loader} from "./Loader";
 
 export class ConfigLoader {
 
@@ -22,50 +23,18 @@ export class ConfigLoader {
                 varAliases[alias[1]] = process.env[alias[0]];
             }
         });
-        this.processHierarchyVar(configObject, varAliases);
-        this.processHierarchyVar(configObject, process.env);
+        Loader.processHierarchyVar(configObject, varAliases);
+        Loader.processHierarchyVar(configObject, process.env);
     };
 
     private static processArguments(configObject: object): void {
         const argv = optimist.argv;
         delete(argv._);
         delete(argv.$0);
-        this.processHierarchyVar(configObject, argv);
+        Loader.processHierarchyVar(configObject, argv);
     };
 
-    private static processHierarchyVar(configObject: object, vars: object): void {
-        const config = {};
 
-        Object.keys(vars).forEach((key) => {
-            const keyArray = key.split("-");
-            const value = vars[key];
-
-            //recursive settings
-            const setObject = (object, keyArray, value) => {
-                let key = keyArray.shift();
-                object[key] = object[key] || {};
-
-                if (keyArray.length == 0) {
-                    //convert to boolean 
-                    if (value.toLowerCase && value.toLowerCase() === "false") {
-                        value = false;
-                    }
-                    if (value.toLowerCase && value.toLowerCase() === "true") {
-                        value = true;
-                    }
-
-                    object[key] = value;
-                    return;
-                }
-
-                return setObject(object[key], keyArray, value);
-            };
-            setObject(config, keyArray, value);
-
-        });
-
-        this.loadObject(configObject, config);
-    }
 
     private static processConfigFile(configFilePath: string, configObject: object): void {
         if (typeof configFilePath !== 'undefined') {
@@ -81,7 +50,7 @@ export class ConfigLoader {
         }
         try {
             const config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
-            this.loadObject(configObject, config);
+            Loader.loadObject(configObject, config);
             return true;
         } catch (err) {
         }
@@ -96,19 +65,5 @@ export class ConfigLoader {
         }
     }
 
-    private static loadObject(targetObject: object, sourceObject: object): void {
-        Object.keys(sourceObject).forEach((key) => {
-            if (typeof targetObject[key] === "undefined") {
-                return;
-            }
-            if (Array.isArray(targetObject[key])) {
-                return targetObject[key] = sourceObject[key];
-            }
-            if (typeof targetObject[key] === "object") {
-                return this.loadObject(targetObject[key], sourceObject[key]);
-            }
 
-            targetObject[key] = sourceObject[key];
-        });
-    }
 }

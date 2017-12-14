@@ -1,5 +1,6 @@
 /src/ConfigLoader.ts
 /src/WebConfigLoader.ts
+/src/Loader.ts
 index.ts
 .idea/
 TypeConfig.iml
