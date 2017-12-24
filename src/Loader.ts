@@ -41,7 +41,7 @@ export class Loader{
             if (Array.isArray(targetObject[key])) {
                 return targetObject[key] = sourceObject[key];
             }
-            if (typeof targetObject[key] === "object") {
+            if (typeof targetObject[key] === "object" && targetObject[key] != null) {
                 return this.loadObject(targetObject[key], sourceObject[key]);
             }
 
