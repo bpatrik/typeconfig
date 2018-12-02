@@ -29,11 +29,10 @@ export class ConfigLoader {
 
     private static processArguments(configObject: object): void {
         const argv = optimist.argv;
-        delete(argv._);
-        delete(argv.$0);
+        delete (argv._);
+        delete (argv.$0);
         Loader.processHierarchyVar(configObject, argv);
     };
-
 
 
     private static processConfigFile(configFilePath: string, configObject: object): void {
@@ -58,11 +57,7 @@ export class ConfigLoader {
     }
 
     public static saveConfigFile(configFilePath: string, configObject: object): void {
-        try {
-            fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
-        } catch (err) {
-
-        }
+        fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
     }
 
 
