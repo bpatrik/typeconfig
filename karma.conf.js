@@ -13,7 +13,7 @@ module.exports = function (config) {
             tsconfig: './tsconfig.json'
         },
         reporters: ["progress", "karma-typescript"],
-        browsers: ["PhantomJS"],
+        browsers: ["ChromeHeadless"],
         port: 9876,
         colors: true,
         autoWatch: false,
