@@ -1,6 +1,6 @@
 {
   "name": "typeconfig",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Config loader for Typescript",
   "main": "index.js",
   "scripts": {
@@ -21,17 +21,17 @@
   },
   "homepage": "https://github.com/bpatrik/typeconfig#readme",
   "devDependencies": {
-    "@types/jasmine": "3.3.5",
-    "@types/node": "10.12.18",
+    "@types/jasmine": "3.5.0",
+    "@types/node": "12.12.17",
     "@types/optimist": "0.0.29",
-    "jasmine-core": "3.3.0",
-    "karma": "3.1.4",
-    "tslint": "5.11.0",
-    "tslint-consistent-codestyle": "1.13.3",
+    "jasmine-core": "3.5.0",
+    "karma": "4.4.1",
+    "tslint": "5.20.1",
+    "tslint-consistent-codestyle": "1.16.0",
     "karma-jasmine": "2.0.1",
-    "karma-chrome-launcher": "2.2.0",
-    "karma-typescript": "3.0.13",
-    "typescript": "3.2.2"
+    "karma-chrome-launcher": "3.1.0",
+    "karma-typescript": "4.1.1",
+    "typescript": "3.7.3"
   },
   "dependencies": {
     "optimist": "0.6.1"

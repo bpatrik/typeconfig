@@ -9,31 +9,46 @@ export class ConfigLoader {
    * @param configObject Object to load
    * @param configFilePath Path to the config file. It will be created if not exist
    * @param envAlias Mapping environmental variables to config variables
+   * @param forceRewrite applies cli and env variables to the config an writes the config to file
    */
-  static loadBackendConfig(configObject: object, configFilePath?: string, envAlias: Array<Array<string>> = []): void {
+  public static loadBackendConfig(configObject: object,
+                                  configFilePath?: string,
+                                  envAlias: string[][] = [],
+                                  forceRewrite = false): void {
     ConfigLoader.processConfigFile(configFilePath, configObject);
-    ConfigLoader.processArguments(configObject);
-    ConfigLoader.processEnvVariables(configObject, envAlias);
+    let changed = false;
+    changed = ConfigLoader.processArguments(configObject) || changed;
+    changed = ConfigLoader.processEnvVariables(configObject, envAlias) || changed;
+    if (changed && forceRewrite && typeof configFilePath !== 'undefined') {
+      ConfigLoader.saveConfigFile(configFilePath, configObject);
+    }
   }
 
-  private static processEnvVariables(configObject: object, envAlias: Array<Array<string>>): void {
+  public static saveConfigFile(configFilePath: string, configObject: object): void {
+    fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
+  }
+
+  private static processEnvVariables(configObject: object, envAlias: string[][]): boolean {
     const varAliases = {};
+    let changed = false;
     envAlias.forEach((alias) => {
-      if (process.env[alias[0]]) {
+      if (process.env[alias[0]] && varAliases[alias[1]] !== process.env[alias[0]]) {
+        changed = true;
         varAliases[alias[1]] = process.env[alias[0]];
       }
     });
-    Loader.processHierarchyVar(configObject, varAliases);
-    Loader.processHierarchyVar(configObject, process.env);
+    changed = Loader.processHierarchyVar(configObject, varAliases) || changed;
+    changed = Loader.processHierarchyVar(configObject, process.env) || changed;
+
+    return changed;
   };
 
-  private static processArguments(configObject: object): void {
+  private static processArguments(configObject: object): boolean {
     const argv = optimist.argv;
     delete (argv._);
     delete (argv.$0);
-    Loader.processHierarchyVar(configObject, argv);
+    return Loader.processHierarchyVar(configObject, argv);
   };
-
 
   private static processConfigFile(configFilePath: string, configObject: object): void {
     if (typeof configFilePath !== 'undefined') {
@@ -54,10 +69,6 @@ export class ConfigLoader {
     } catch (err) {
     }
     return false;
-  }
-
-  public static saveConfigFile(configFilePath: string, configObject: object): void {
-    fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
   }
 
 

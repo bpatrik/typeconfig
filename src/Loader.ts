@@ -1,5 +1,5 @@
 export class Loader {
-  public static processHierarchyVar(configObject: object, vars: object): void {
+  public static processHierarchyVar(configObject: object, vars: object): boolean {
     const config = {};
 
     Object.keys(vars).forEach((key) => {
@@ -7,7 +7,7 @@ export class Loader {
       const value = vars[key];
 
       //recursive settings
-      const setObject = (object, keyArray, value) => {
+      const setObject = (object: object, keyArray: string[], value: any) => {
         let key = keyArray.shift();
         object[key] = object[key] || {};
 
@@ -30,22 +30,32 @@ export class Loader {
 
     });
 
-    this.loadObject(configObject, config);
+    return this.loadObject(configObject, config);
   }
 
-  public static loadObject(targetObject: object, sourceObject: object): void {
+  public static loadObject(targetObject: object, sourceObject: object): boolean {
+    let changed = false;
     Object.keys(sourceObject).forEach((key) => {
       if (typeof targetObject[key] === 'undefined') {
         return;
       }
       if (Array.isArray(targetObject[key])) {
-        return targetObject[key] = sourceObject[key];
+        if (targetObject[key] != sourceObject[key]) {
+          targetObject[key] = sourceObject[key];
+          changed = true;
+        }
+        return;
       }
       if (typeof targetObject[key] === 'object' && targetObject[key] != null) {
-        return this.loadObject(targetObject[key], sourceObject[key]);
+        changed = this.loadObject(targetObject[key], sourceObject[key]) || changed;
       }
 
-      targetObject[key] = sourceObject[key];
+      if (targetObject[key] != sourceObject[key]) {
+        targetObject[key] = sourceObject[key];
+        changed = true;
+      }
+      return;
     });
+    return changed;
   }
 }
