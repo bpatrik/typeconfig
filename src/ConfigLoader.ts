@@ -16,9 +16,11 @@ export class ConfigLoader {
                                   envAlias: string[][] = [],
                                   forceRewrite = false): void {
     ConfigLoader.processConfigFile(configFilePath, configObject);
+
     let changed = false;
     changed = ConfigLoader.processArguments(configObject) || changed;
     changed = ConfigLoader.processEnvVariables(configObject, envAlias) || changed;
+
     if (changed && forceRewrite && typeof configFilePath !== 'undefined') {
       ConfigLoader.saveConfigFile(configFilePath, configObject);
     }

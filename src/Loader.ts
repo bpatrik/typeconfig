@@ -48,6 +48,7 @@ export class Loader {
       }
       if (typeof targetObject[key] === 'object' && targetObject[key] != null) {
         changed = this.loadObject(targetObject[key], sourceObject[key]) || changed;
+        return;
       }
 
       if (targetObject[key] != sourceObject[key]) {
