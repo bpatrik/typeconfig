@@ -1,6 +1,10 @@
-/src/**/*ts
+/src/**/*.ts
+!/src/**/*.d.ts
 index.ts
 .idea/
 TypeConfig.iml
 example/
 test/
+tslint.json
+tsconfig.json
+.editorconfig
