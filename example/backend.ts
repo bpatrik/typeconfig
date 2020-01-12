@@ -1,5 +1,6 @@
-import * as express from "express";
-import {Config} from "./config/private/Config";
+import * as express from 'express';
+import {Request, Response} from 'express';
+import {Config} from './config/private/Config';
 
 
 let app = express();
@@ -12,9 +13,9 @@ console.log(Config);
 /*
 With the help of ejs template, we are sending the Config.Public to frontend
  */
-app.get('/', function(req, res) {
-    let tpl = {
-        clientConfig: Config.Public,
-    };
-    res.render('index', tpl);
+app.get('/', function (req: Request, res: Response) {
+  let tpl = {
+    clientConfig: Config.Public,
+  };
+  res.render('index', tpl);
 });
