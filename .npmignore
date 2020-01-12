@@ -8,3 +8,4 @@ test/
 tslint.json
 tsconfig.json
 .editorconfig
+coverage/

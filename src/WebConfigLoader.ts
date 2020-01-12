@@ -6,12 +6,12 @@ export class WebConfigLoader {
     let match,
       pl = /\+/g,  // Regex for replacing addition symbol with a space
       search = /([^&=]+)=?([^&]*)/g,
-      decode = (s) => {
+      decode = (s: string) => {
         return decodeURIComponent(s.replace(pl, ' '));
       },
       query = window.location.search.substring(1);
 
-    let urlParams = {};
+    let urlParams: { [key: string]: any } = {};
     while (match = search.exec(query)) {
       urlParams[decode(match[1])] = decode(match[2]);
     }
@@ -22,7 +22,7 @@ export class WebConfigLoader {
     Loader.processHierarchyVar(targetObject, WebConfigLoader.getUrlParams());
   }
 
-  static loadFrontendConfig(targetObject, sourceObject) {
+  public static loadFrontendConfig(targetObject: { [key: string]: any }, sourceObject: { [key: string]: any }) {
     Object.keys(sourceObject).forEach((key) => {
       if (typeof targetObject[key] === 'undefined') {
         return;

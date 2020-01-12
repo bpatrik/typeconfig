@@ -4,7 +4,8 @@
   "description": "Config loader for Typescript",
   "main": "index.js",
   "scripts": {
-    "test": "karma start karma.conf.js --single-run"
+    "test": "nyc mocha --recursive test",
+    "coverage": "nyc report --reporter=text-lcov | coveralls"
   },
   "repository": {
     "type": "git",
@@ -21,16 +22,18 @@
   },
   "homepage": "https://github.com/bpatrik/typeconfig#readme",
   "devDependencies": {
-    "@types/jasmine": "3.5.0",
+    "@types/mocha": "5.2.7",
     "@types/node": "13.1.2",
     "@types/optimist": "0.0.29",
+    "@types/chai": "4.2.6",
     "jasmine-core": "3.5.0",
     "karma": "4.4.1",
     "tslint": "5.20.1",
+    "mocha": "6.2.2",
+    "chai": "4.2.0",
+    "coveralls": "3.0.9",
+    "nyc": "15.0.0",
     "tslint-consistent-codestyle": "1.16.0",
-    "karma-jasmine": "2.0.1",
-    "karma-chrome-launcher": "3.1.0",
-    "karma-typescript": "4.1.1",
     "typescript": "3.7.4"
   },
   "dependencies": {
