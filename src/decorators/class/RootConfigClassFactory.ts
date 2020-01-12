@@ -1,5 +1,5 @@
 import {IConfigClass} from './IConfigClass';
-import {ConfigClassFactory} from './ConfigClassFactory';
+import {ConfigClassFactory, ToJSONOptions} from './ConfigClassFactory';
 import {ConstraintError} from '../ConstraintError';
 import {SubClassOptions} from './SubConfigClass';
 
@@ -63,10 +63,6 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
 }
 
 
-export interface ToJSONOptions {
-  attachDescription?: boolean;
-  attachDefaults?: boolean;
-}
 
 export function RootConfigClassFactory(constructorFunction: new (...args: any[]) => any, options: ConfigClassOptions = {}) {
   return class RootConfigClass extends ConfigClassFactory(constructorFunction, options) {

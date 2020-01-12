@@ -12,7 +12,7 @@ export class ConfigLoader {
    * @param forceRewrite applies cli and env variables to the config an writes the config to file
    * @deprecated
    */
-  public static async loadBackendConfig(configObject: object,
+  public static async loadBackendConfig(configObject: { [kes: string]: any },
                                         configFilePath?: string,
                                         envAlias: string[][] = [],
                                         forceRewrite = false): Promise<void> {
@@ -36,7 +36,7 @@ export class ConfigLoader {
    * @param envAlias: string[][]
    * @return true if the object changed (env variables changed the config)
    */
-  public static processEnvVariables(configObject: object, envAlias: string[][]): boolean {
+  public static processEnvVariables(configObject: { [kes: string]: any }, envAlias: string[][] = []): boolean {
     const varAliases: { [key: string]: any } = {};
     let changed = false;
     envAlias.forEach((alias) => {
@@ -51,14 +51,14 @@ export class ConfigLoader {
     return changed;
   };
 
-  public static processCLIArguments(configObject: object): boolean {
+  public static processCLIArguments(configObject: { [kes: string]: any }): boolean {
     const argv = optimist.argv;
     delete (argv._);
     delete (argv.$0);
     return Loader.processHierarchyVar(configObject, argv);
   };
 
-  public static async saveJSONConfigFile(configFilePath: string, configObject: object): Promise<void> {
+  public static async saveJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }): Promise<void> {
     await fsp.writeFile(configFilePath, JSON.stringify(configObject, null, 4));
   }
 

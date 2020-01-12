@@ -23,7 +23,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
 
         if (options.saveIfNotExist === true || shouldSave) {
-          this.save();
+          await this.save();
         }
 
         if (cliParsed === false) {

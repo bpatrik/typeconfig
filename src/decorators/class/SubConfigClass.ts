@@ -1,5 +1,4 @@
-import {ConfigClassFactory} from './ConfigClassFactory';
-import {ToJSONOptions} from './RootConfigClassFactory';
+import {ConfigClassFactory, ToJSONOptions} from './ConfigClassFactory';
 
 
 export interface SubClassOptions extends ToJSONOptions {

@@ -2,7 +2,11 @@ import {IConfigClass} from './IConfigClass';
 import {Enum, IPropertyState, propertyTypes} from '../IPropertyState';
 import {ConstraintError} from '../ConstraintError';
 import {SubClassOptions} from './SubConfigClass';
-import {ToJSONOptions} from './RootConfigClassFactory';
+
+export interface ToJSONOptions {
+  attachDescription?: boolean;
+  attachDefaults?: boolean;
+}
 
 export function ConfigClassFactory(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
   return class ConfigClass extends constructorFunction implements IConfigClass {
@@ -151,8 +155,8 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
       return newValue;
     }
 
-    toJSON(opt: ToJSONOptions = options): { [key: string]: any } {
-
+    toJSON(opt?: ToJSONOptions): { [key: string]: any } {
+      opt = opt || options;
       const ret: { [key: string]: any } = {};
       if (opt.attachDefaults === true) {
         ret['__defaults'] = this.__defaults;
@@ -162,7 +166,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           typeof this.__state[key].value === 'undefined') {
           continue;
         }
-        if (typeof this.__state[key].description !== 'undefined') {
+        if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
           ret['//' + key] = this.__state[key].description;
         }
         // if ConfigClass type?
