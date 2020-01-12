@@ -4,7 +4,6 @@ import {ConfigProperty} from '../../src/decorators/ConfigPropoerty';
 import {ConfigClassMethods} from '../../src/decorators/class/RootConfigClassFactory';
 import {TestHelper} from '../TestHelper';
 import {promises as fsp} from 'fs';
-import * as fs from 'fs';
 import * as optimist from 'optimist';
 
 const chai: any = require('chai');
@@ -81,7 +80,7 @@ describe('ConfigClass', () => {
   describe('config file', () => {
 
     const filePath = TestHelper.getFilePath('testConf.json');
-    let saveENV = JSON.parse(JSON.stringify(process.env));
+    const saveENV = JSON.parse(JSON.stringify(process.env));
     beforeEach(async () => {
       await TestHelper.cleanTempFolder();
       process.env = saveENV;
@@ -89,8 +88,36 @@ describe('ConfigClass', () => {
     afterEach(async () => {
       await TestHelper.removeTempFolder();
       process.env = saveENV;
+      delete optimist.argv['num'];
       delete process.env['num'];
       delete process.env['num2'];
+    });
+
+
+    it('should load', async () => {
+
+      @ConfigClass({configPath: filePath})
+      class C extends ConfigClassMethods {
+
+        @ConfigProperty()
+        num: number = 5;
+
+      }
+
+      @ConfigClass({configPath: filePath})
+      class C2 extends ConfigClassMethods {
+
+        @ConfigProperty()
+        num: number = 20;
+
+      }
+
+      const c = new C();
+      const c2 = new C2();
+      await c.load();
+      chai.expect(c2.toJSON()).to.deep.equal({num: 20});
+      await c2.load();
+      chai.expect(c2.toJSON()).to.deep.equal({num: 5});
     });
 
     it('should save', async () => {
@@ -121,7 +148,7 @@ describe('ConfigClass', () => {
       await chai.expect(fsp.access(filePath)).to.rejectedWith('ENOENT: no such file or directory');
       await c.load();
       await chai.expect(fsp.access(filePath)).not.to.rejectedWith();
-      const loaded =  JSON.parse(await fsp.readFile(filePath, 'utf8'));
+      const loaded = JSON.parse(await fsp.readFile(filePath, 'utf8'));
       chai.expect(loaded).to.deep.equal({num: 5, '//num': 'its a number'});
     });
 
@@ -139,7 +166,7 @@ describe('ConfigClass', () => {
       await chai.expect(fsp.access(filePath)).to.rejectedWith('ENOENT: no such file or directory');
       await c.load();
       await chai.expect(fsp.access(filePath)).not.to.rejectedWith();
-      const loaded =  JSON.parse(await fsp.readFile(filePath, 'utf8'));
+      const loaded = JSON.parse(await fsp.readFile(filePath, 'utf8'));
       chai.expect(loaded).to.deep.equal({num: 10});
     });
 
@@ -156,7 +183,7 @@ describe('ConfigClass', () => {
       await chai.expect(fsp.access(filePath)).to.rejectedWith('ENOENT: no such file or directory');
       await c.load();
       await chai.expect(fsp.access(filePath)).not.to.rejectedWith();
-      const loaded =  JSON.parse(await fsp.readFile(filePath, 'utf8'));
+      const loaded = JSON.parse(await fsp.readFile(filePath, 'utf8'));
       chai.expect(loaded).to.deep.equal({num: 10});
     });
 
