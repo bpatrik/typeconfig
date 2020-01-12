@@ -18,7 +18,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           cliParsed = true;
         }
         if (options.rewriteENVConfig === true) {
-          shouldSave = ConfigLoader.processEnvVariables(this, options.envAlias) || shouldSave;
+
+          shouldSave = ConfigLoader.processEnvVariables(this, this.__getENVAliases()) || shouldSave;
           envParsed = true;
         }
 
@@ -30,9 +31,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           ConfigLoader.processCLIArguments(this);
         }
         if (envParsed === false) {
-          ConfigLoader.processEnvVariables(this, options.envAlias);
+          ConfigLoader.processEnvVariables(this, this.__getENVAliases());
         }
-
       }
 
       async save(): Promise<any> {

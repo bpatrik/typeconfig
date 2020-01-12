@@ -12,7 +12,8 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
   return class ConfigClass extends constructorFunction implements IConfigClass {
     __state: { [key: string]: IPropertyState<any> };
     __defaults: { [key: string]: any } = {};
-    __rootConfig: IConfigClass;
+    __rootConfig: ConfigClass;
+    __propPath: string = '';
 
     constructor(...args: any[]) {
       super(...args);
@@ -31,14 +32,34 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
     }
 
 
-    __setRootConfig(rootConf: IConfigClass): void {
+    __getENVAliases(): { key: string, alias: string }[] {
+      let ret: { key: string, alias: string }[] = [];
+      for (const key of Object.keys(this.__state)) {
+        if (typeof this.__state[key].envAlias !== 'undefined') {
+          ret.push({
+            key: this.__getFulName(key).replace(new RegExp('\\.','gm'),'-'),
+            alias: this.__state[key].envAlias
+          });
+        }
+
+        if (typeof this.__state[key].value !== 'undefined' &&
+          typeof this.__state[key].value.__getENVAliases !== 'undefined') {
+          ret = ret.concat(this.__state[key].value.__getENVAliases());
+        }
+      }
+      return ret;
+    }
+
+    __setParentConfig(propertyPath: string, rootConf: ConfigClass): void {
       this.__rootConfig = rootConf;
+      this.__propPath = propertyPath;
       for (const key of Object.keys(this.__state)) {
         if (typeof this.__state[key].value === 'undefined' ||
-          typeof this.__state[key].value.__setRootConfig === 'undefined') {
+          typeof this.__state[key].value.__setParentConfig === 'undefined') {
           continue;
         }
-        this.__state[key].value.__setRootConfig(this.__rootConfig);
+        const propPath = this.propertyPath ? this.propertyPath + '.' + key : key;
+        this.__state[key].value.__setParentConfig(propPath, this.__rootConfig);
       }
     }
 
@@ -116,7 +137,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           return floatValue;
         case Date:
           if (typeof intValue === 'undefined' && isNaN(Date.parse(<any>newValue))) {
-            throw new TypeError(property + ' should be a Date, got:' + newValue);
+            throw new TypeError(this.__getFulName(property) + ' should be a Date, got:' + newValue);
           }
           return new Date(<any>newValue);
         case Boolean:
@@ -126,10 +147,10 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           if (strValue.toLowerCase() === 'true' || <any>newValue === true) {
             return true;
           }
-          throw new TypeError(property + ' should be a boolean');
+          throw new TypeError(this.__getFulName(property) + ' should be a boolean');
         case Array:
           if (!Array.isArray(newValue)) {
-            throw new TypeError(property + ' should be an array');
+            throw new TypeError(this.__getFulName(property) + ' should be an array');
           }
           if (propState.arrayType !== Array) {
             for (let i = 0; i < newValue.length; ++i) {
@@ -150,7 +171,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
         if (typeof newValue === 'string' && typeof (<Enum<any>>type)[strValue] === 'number') {
           return (<Enum<any>>type)[strValue];
         }
-        throw new TypeError(property + ' should be an Enum from values: ' + Object.keys(type));
+        throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type));
       }
       return newValue;
     }
@@ -182,7 +203,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
     };
 
     __getFulName(property: string): string {
-      return property;
+      return this.__propPath ? this.__propPath + '.' + property : property;
     }
 
     ___printMan(): string {

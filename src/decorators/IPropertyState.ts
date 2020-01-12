@@ -19,16 +19,17 @@ export interface PropertyOptions<T> {
   arrayType?: propertyTypes;
   volatile?: boolean;
   description?: string;
+  envAlias?: string;
   constraint?: PropertyConstraint<T, any>;
 }
 
 export interface IPropertyState<T> extends PropertyOptions<T> {
-  value: T;
-  default: T;
+  value?: T;
   type: propertyTypes;
   arrayType?: propertyTypes;
-  volatile: boolean;
+  volatile?: boolean;
   description?: string;
+  envAlias?: string;
   constraint?: PropertyConstraint<T, any>
 
 }

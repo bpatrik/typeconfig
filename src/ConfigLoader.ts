@@ -14,7 +14,7 @@ export class ConfigLoader {
    */
   public static async loadBackendConfig(configObject: { [kes: string]: any },
                                         configFilePath?: string,
-                                        envAlias: string[][] = [],
+                                        envAlias: { key: string, alias: string }[] = [],
                                         forceRewrite = false): Promise<void> {
 
     if (configFilePath && await ConfigLoader.loadJSONConfigFile(configFilePath, configObject) === false) {
@@ -36,13 +36,13 @@ export class ConfigLoader {
    * @param envAlias: string[][]
    * @return true if the object changed (env variables changed the config)
    */
-  public static processEnvVariables(configObject: { [kes: string]: any }, envAlias: string[][] = []): boolean {
+  public static processEnvVariables(configObject: { [kes: string]: any }, envAlias: { key: string, alias: string }[] = []): boolean {
     const varAliases: { [key: string]: any } = {};
     let changed = false;
     envAlias.forEach((alias) => {
-      if (process.env[alias[0]] && varAliases[alias[1]] !== process.env[alias[0]]) {
+      if (process.env[alias.alias] && varAliases[alias.key] !== process.env[alias.alias]) {
         changed = true;
-        varAliases[alias[1]] = process.env[alias[0]];
+        varAliases[alias.key] = process.env[alias.alias];
       }
     });
     changed = Loader.processHierarchyVar(configObject, varAliases) || changed;

@@ -7,12 +7,9 @@ export function ConfigProperty<T>(options: PropertyOptions<T> = {}) {
       type = Reflect.getMetadata('design:type', target, property);
     }
     const state: { [key: string]: IPropertyState<any> } = target.__state || {};
-    state[property] = state[property] || <IPropertyState<any>>{};
+
+    state[property] = <IPropertyState<T>>options;
     state[property].type = type;
-    state[property].arrayType = options.arrayType;
-    state[property].constraint = options.constraint;
-    state[property].description = options.description;
-    state[property].volatile = options.volatile;
     target.__state = state;
 
     return {

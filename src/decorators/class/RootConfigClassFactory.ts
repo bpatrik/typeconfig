@@ -5,9 +5,6 @@ import {SubClassOptions} from './SubConfigClass';
 
 
 export class ConfigClassMethods implements IConfigClass {
-  __validateAll(): void {
-  }
-
   toJSON(opt?: ToJSONOptions): { [key: string]: any } {
     return {};
   }
@@ -34,7 +31,6 @@ export interface ConfigClassOptionsBase extends SubClassOptions {
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
-  envAlias?: string[][];
 }
 
 
@@ -45,7 +41,6 @@ export interface ConfigCLIOptions extends ConfigClassOptionsBase {
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
-  envAlias?: string[][];
 }
 
 export interface ConfigClassOptions extends ConfigClassOptionsBase {
@@ -55,7 +50,6 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
-  envAlias?: string[][];
   cli?: {
     prefix: string,
     enable: ConfigCLIOptions
@@ -63,13 +57,12 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
 }
 
 
-
 export function RootConfigClassFactory(constructorFunction: new (...args: any[]) => any, options: ConfigClassOptions = {}) {
   return class RootConfigClass extends ConfigClassFactory(constructorFunction, options) {
     constructor(...args: any[]) {
       super(...args);
 
-      this.__setRootConfig(this);
+      this.__setParentConfig('', this);
       const exceptionStack: string[] = [];
       this.__rootConfig.__validateAll(exceptionStack);
       if (exceptionStack.length > 0) {

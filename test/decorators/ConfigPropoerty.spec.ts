@@ -494,4 +494,58 @@ describe('ConfigProperty', () => {
 
   });
 
+
+  describe('env alias', () => {
+    afterEach(() => {
+      delete process.env['numAlias'];
+    });
+
+    it('should be loaded', async () => {
+
+      @ConfigClass()
+      class C extends ConfigClassMethods {
+
+        @ConfigProperty({envAlias: 'numAlias'})
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number = 10;
+
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({num: 5, num2: 10});
+      process.env['numAlias'] = '100';
+      await c.load();
+      chai.expect(c.toJSON()).to.deep.equal({num: 100, num2: 10});
+
+    });
+
+    it('should be loaded in sub config', async () => {
+
+      @SubConfigClass()
+      class S {
+
+        @ConfigProperty({envAlias: 'numAlias'})
+        num: number = 5;
+
+      }
+
+      @ConfigClass()
+      class C extends ConfigClassMethods {
+
+
+        @ConfigProperty()
+        sub: S = new S();
+
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}});
+      process.env['numAlias'] = '100';
+      await c.load();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 100}});
+
+    });
+  });
 });
