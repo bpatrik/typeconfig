@@ -1,7 +1,8 @@
 import 'reflect-metadata';
 import {ConfigClass} from '../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../src/decorators/ConfigPropoerty';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
+import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 
 const chai: any = require('chai');
 const should = chai.should();
@@ -178,7 +179,7 @@ describe('ConfigProperty', () => {
         }
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({enum: TestEnum.red});
       c.enum = TestEnum.blue;
       chai.expect(c.toJSON()).to.deep.equal({enum: TestEnum.blue});
@@ -200,7 +201,7 @@ describe('ConfigProperty', () => {
         }
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({arr: ['apple']});
       c.arr = ['pear', 'peach'];
       chai.expect(c.toJSON()).to.deep.equal({arr: ['pear', 'peach']});
@@ -223,7 +224,7 @@ describe('ConfigProperty', () => {
         }
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({arr: [10, 30]});
       c.arr = [10, 40];
       chai.expect(c.toJSON()).to.deep.equal({arr: [10, 40]});
@@ -257,7 +258,7 @@ describe('ConfigProperty', () => {
         }
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({arr: [TestEnum.blue]});
       c.arr = [TestEnum.green, TestEnum.red];
       chai.expect(c.toJSON()).to.deep.equal({arr: [TestEnum.green, TestEnum.red]});
@@ -306,7 +307,7 @@ describe('ConfigProperty', () => {
     it('should validate', () => {
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({
           constraint: {assert: v => v >= 5}
@@ -316,7 +317,8 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
       c.num = 6;
       chai.expect(c.toJSON()).to.deep.equal({num: 6});
@@ -336,7 +338,7 @@ describe('ConfigProperty', () => {
     it('should fallback', () => {
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({
           constraint: {assert: v => v >= 5, fallBackValue: 10}
@@ -346,7 +348,8 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
       try {
         c.num = 1;
       } catch (e) {
@@ -356,7 +359,7 @@ describe('ConfigProperty', () => {
     });
     it('should error on default value error ', () => {
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({
           constraint: {assert: v => v >= 5, fallBackValue: 10}
@@ -370,7 +373,7 @@ describe('ConfigProperty', () => {
 
     it('should print custom assert reason', () => {
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({
           constraint: {assert: v => v >= 5, assertReason: 'Should be greater than five'}
@@ -378,7 +381,8 @@ describe('ConfigProperty', () => {
         num: number = 5;
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
       try {
         c.num = 1;
       } catch (e) {
@@ -391,7 +395,7 @@ describe('ConfigProperty', () => {
 
     it('should print custom assert reason with default value', () => {
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({
           constraint: {assert: v => v >= 5, fallBackValue: 10, assertReason: 'Should be greater than five'}
@@ -399,7 +403,7 @@ describe('ConfigProperty', () => {
         num: number = 5;
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       try {
         c.num = 1;
       } catch (e) {
@@ -423,7 +427,7 @@ describe('ConfigProperty', () => {
       }
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty()
         num: number = 5;
@@ -432,7 +436,7 @@ describe('ConfigProperty', () => {
         sub: Sub = new Sub();
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(() => {
         c.num = 0;
         console.log('lefut', c);
@@ -444,7 +448,7 @@ describe('ConfigProperty', () => {
 
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
         @ConfigProperty()
         a: number = 5;
 
@@ -466,7 +470,7 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
 
       chai.expect(c.toJSON()).to.deep.equal({a: 5, b: 5, c: 5});
       chai.expect(() => {
@@ -490,7 +494,7 @@ describe('ConfigProperty', () => {
       }
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
         @ConfigProperty()
         a: number = 5;
 
@@ -507,7 +511,8 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
 
       chai.expect(c.toJSON()).to.deep.equal({a: 5, b: 5, sub: {c: 5}});
       chai.expect(() => {
@@ -527,7 +532,7 @@ describe('ConfigProperty', () => {
     it('should be loaded', async () => {
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
         @ConfigProperty({envAlias: 'numAlias'})
         num: number = 5;
@@ -537,7 +542,8 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
       chai.expect(c.toJSON()).to.deep.equal({num: 5, num2: 10});
       process.env['numAlias'] = '100';
       await c.load();
@@ -556,7 +562,7 @@ describe('ConfigProperty', () => {
       }
 
       @ConfigClass()
-      class C extends ConfigClassMethods {
+      class C {
 
 
         @ConfigProperty()
@@ -564,7 +570,8 @@ describe('ConfigProperty', () => {
 
       }
 
-      const c = new C();
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}});
       process.env['numAlias'] = '100';
       await c.load();

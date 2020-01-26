@@ -1,12 +1,12 @@
-import {ToJSONOptions} from './ConfigClassFactory';
+import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase';
 
-export interface IConfigClass {
-
-  toJSON(opt?: ToJSONOptions): { [key: string]: any };
-
-  toStateString(): string;
-
-  toStateStringWithDefaults(): string;
+export interface IConfigClassPrivate extends IConfigClassPrivateBase, IConfigClass {
+  __printMan(): string;
+}
 
 
+export interface IConfigClass extends IConfigClassBase {
+  load(): Promise<any>;
+
+  save(): Promise<any>;
 }

@@ -1,4 +1,4 @@
-import {Enum} from './decorators/IPropertyState';
+import {Enum} from './decorators/property/IPropertyState';
 
 export class Utils {
   static isEnum(instance: Object): boolean {

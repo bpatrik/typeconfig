@@ -1,21 +1,16 @@
-import {IConfigClass} from './IConfigClass';
-import {Enum, IPropertyState, propertyTypes} from '../IPropertyState';
-import {ConstraintError} from '../ConstraintError';
-import {SubClassOptions} from './SubConfigClass';
-import {Utils} from '../../Utils';
-
-export interface ToJSONOptions {
-  attachDescription?: boolean;
-  attachDefaults?: boolean;
-  enumsAsString?: boolean;
-}
+import {IConfigClassBase, IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase';
+import {Enum, IPropertyState, propertyTypes} from '../../property/IPropertyState';
+import {ConstraintError} from '../../exceptions/ConstraintError';
+import {SubClassOptions} from '../SubConfigClass';
+import {Utils} from '../../../Utils';
 
 
-export function ConfigClassFactory(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
-  return class ConfigClass extends constructorFunction implements IConfigClass {
+
+export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
+  return class ConfigClassBase extends constructorFunction implements IConfigClassPrivateBase {
     __state: { [key: string]: IPropertyState<any, any> };
     __defaults: { [key: string]: any } = {};
-    __rootConfig: ConfigClass;
+    __rootConfig: ConfigClassBase;
     __propPath: string = '';
 
     constructor(...args: any[]) {
@@ -53,7 +48,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
       return ret;
     }
 
-    __setParentConfig(propertyPath: string, rootConf: ConfigClass): void {
+    __setParentConfig(propertyPath: string, rootConf: ConfigClassBase): void {
       this.__rootConfig = rootConf;
       this.__propPath = propertyPath;
       for (const key of Object.keys(this.__state)) {
@@ -75,7 +70,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
       }
     }
 
-    __setAndValidateFromRoot<T>(property: string, newValue: T) {
+    __setAndValidateFromRoot<T>(property: string, newValue: T):void {
       if (this.__state[property].value === newValue) {
         return;
       }
@@ -199,9 +194,12 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
     toJSON(opt?: ToJSONOptions): { [key: string]: any } {
       opt = opt || options;
       const ret: { [key: string]: any } = {};
+
+      // Attach defaults
       if (opt.attachDefaults === true) {
         ret['__defaults'] = this.__defaults;
       }
+
       for (const key of Object.keys(this.__state)) {
         if (this.__state[key].volatile === true ||
           typeof this.__state[key].value === 'undefined') {
@@ -210,6 +208,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
           ret['//[' + key + ']'] = this.__state[key].description;
         }
+
         // if ConfigClass type?
         if (typeof this.__state[key].value.toJSON !== 'undefined' &&
           typeof this.__state[key].value.__defaults !== 'undefined') {
@@ -217,9 +216,11 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           ret[key] = this.__state[key].value.toJSON(opt);
           continue;
         }
+
         if (opt.enumsAsString === true && Utils.isEnum(this.__state[key].type)) {
           ret[key] = (<any>this.__state[key].type)[this.__state[key].value];
         } else {
+          ret[key] = this.__state[key].value;
         }
       }
       return ret;

@@ -1,5 +1,5 @@
-import {ConfigClassFactory, ToJSONOptions} from './ConfigClassFactory';
-
+import {ToJSONOptions} from './base/IConfigClassBase';
+import {ConfigClassBase} from './base/ConfigClassBase';
 
 export interface SubClassOptions extends ToJSONOptions {
   attachDescription?: boolean;
@@ -9,7 +9,8 @@ export interface SubClassOptions extends ToJSONOptions {
 
 export function SubConfigClass(options?: SubClassOptions): any {
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class SubConfigClass extends ConfigClassFactory(constructorFunction, options) {
+    return class SubConfigClass extends ConfigClassBase(constructorFunction, options) {
+
     };
   };
 }

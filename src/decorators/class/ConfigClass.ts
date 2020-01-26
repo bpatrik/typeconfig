@@ -1,6 +1,7 @@
-import {ConfigClassOptionsBase, RootConfigClassFactory} from './RootConfigClassFactory';
+
 import {ConfigLoader} from '../../ConfigLoader';
 import * as optimist from 'optimist';
+import {ConfigClassOptionsBase, AbstractRootConfigClass} from './base/AbstractRootConfigClass';
 
 
 export interface ConfigCLIOptions {
@@ -72,7 +73,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
   options.cli.prefix = options.cli.prefix || 'config-';
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class ConfigClass extends RootConfigClassFactory(constructorFunction, options) {
+    return class ConfigClass extends AbstractRootConfigClass(constructorFunction, options) {
 
 
       constructor(...args: any[]) {

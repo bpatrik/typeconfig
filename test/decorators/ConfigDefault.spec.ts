@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import {ConfigClass} from '../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../src/decorators/ConfigPropoerty';
-import {ConfigDefaults} from '../../src/decorators/ConfigDefaults';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
+import {ConfigDefaults} from '../../src/decorators/property/ConfigDefaults';
 
 const chai: any = require('chai');
 const should = chai.should();

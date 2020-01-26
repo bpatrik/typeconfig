@@ -1,5 +1,6 @@
-import {ConfigClassOptionsBase, RootConfigClassFactory} from './RootConfigClassFactory';
 import {WebConfigLoader} from '../../WebConfigLoader';
+import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
+import {IWebConfigClassPrivate} from './IWebConfigClass';
 
 
 export interface WebConfigClassOptions extends ConfigClassOptionsBase {
@@ -11,10 +12,10 @@ export interface WebConfigClassOptions extends ConfigClassOptionsBase {
 
 export function WebConfigClass(options: WebConfigClassOptions = {}): any {
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class WebConfigClass extends RootConfigClassFactory(constructorFunction, options) {
-      load(configJson: WebConfigClass): void {
+    return class WebConfigClass extends AbstractRootConfigClass(constructorFunction, options) implements IWebConfigClassPrivate {
+      load(configJson: WebConfigClass = <any>{}): void {
         WebConfigLoader.loadFrontendConfig(this, configJson);
-        if(options.loadQueryOptions){
+        if (options.loadQueryOptions) {
           WebConfigLoader.loadUrlParams(this);
         }
       }
