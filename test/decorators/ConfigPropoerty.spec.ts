@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
-import {ConfigClassMethods} from '../../src/decorators/class/RootConfigClassFactory';
 
 const chai: any = require('chai');
 const should = chai.should();
@@ -11,6 +10,27 @@ describe('ConfigProperty', () => {
 
 
   describe('should support', () => {
+    it('null', () => {
+
+      throw new Error('implement');
+    });
+    it('undefined', () => {
+
+      throw new Error('implement');
+    });
+
+    it('ratio', () => {
+
+      throw new Error('implement');
+    });
+    it('unsignedInt', () => {
+
+      throw new Error('implement');
+    });
+    it('positiveFloat', () => {
+
+      throw new Error('implement');
+    });
 
     it('number', () => {
 
@@ -252,6 +272,10 @@ describe('ConfigProperty', () => {
       }).to.throw(TypeError, 'should be an Enum');
     });
 
+    it('config-array', () => {
+      throw new Error('implement');
+    });
+
   });
 
   it('should skip volatile', () => {
@@ -277,6 +301,7 @@ describe('ConfigProperty', () => {
   });
 
   describe('constraint', () => {
+
 
     it('should validate', () => {
 
@@ -494,7 +519,6 @@ describe('ConfigProperty', () => {
 
   });
 
-
   describe('env alias', () => {
     afterEach(() => {
       delete process.env['numAlias'];
@@ -545,6 +569,14 @@ describe('ConfigProperty', () => {
       process.env['numAlias'] = '100';
       await c.load();
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 100}});
+
+    });
+  });
+  describe('on new value', () => {
+
+    it('should call function', async () => {
+
+      throw new Error('TODO implement');
 
     });
   });

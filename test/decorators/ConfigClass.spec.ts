@@ -207,7 +207,34 @@ describe('ConfigClass', () => {
       chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5, num2: 5});
     });
 
+  });
 
+  describe('cli options', () => {
+
+    it('should set config path', async () => {
+      throw new Error('TODO implement');
+    });
+
+  });
+
+  it('should load state from json', async () => {
+    @ConfigClass({configPath: filePath})
+    class C extends ConfigClassMethods {
+      @ConfigProperty({description: 'its a number'})
+      num: number = 5;
+
+      @ConfigProperty()
+      num2: number = 5;
+    }
+
+    optimist.argv['num'] = 10;
+    process.env['num2'] = '10';
+    const c = new C();
+    chai.expect(c.num).to.equal(5);
+    await chai.expect(fsp.access(filePath)).to.rejectedWith('ENOENT: no such file or directory');
+    await c.load();
+    await chai.expect(fsp.access(filePath)).not.to.rejectedWith();
+    chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5, num2: 5});
   });
 
 

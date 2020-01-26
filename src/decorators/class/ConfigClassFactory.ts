@@ -2,15 +2,18 @@ import {IConfigClass} from './IConfigClass';
 import {Enum, IPropertyState, propertyTypes} from '../IPropertyState';
 import {ConstraintError} from '../ConstraintError';
 import {SubClassOptions} from './SubConfigClass';
+import {Utils} from '../../Utils';
 
 export interface ToJSONOptions {
   attachDescription?: boolean;
   attachDefaults?: boolean;
+  enumsAsString?: boolean;
 }
+
 
 export function ConfigClassFactory(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
   return class ConfigClass extends constructorFunction implements IConfigClass {
-    __state: { [key: string]: IPropertyState<any> };
+    __state: { [key: string]: IPropertyState<any, any> };
     __defaults: { [key: string]: any } = {};
     __rootConfig: ConfigClass;
     __propPath: string = '';
@@ -37,7 +40,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
       for (const key of Object.keys(this.__state)) {
         if (typeof this.__state[key].envAlias !== 'undefined') {
           ret.push({
-            key: this.__getFulName(key).replace(new RegExp('\\.','gm'),'-'),
+            key: this.__getFulName(key).replace(new RegExp('\\.', 'gm'), '-'),
             alias: this.__state[key].envAlias
           });
         }
@@ -58,7 +61,7 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           typeof this.__state[key].value.__setParentConfig === 'undefined') {
           continue;
         }
-        const propPath = this.propertyPath ? this.propertyPath + '.' + key : key;
+        const propPath = propertyPath.length > 0 ? (propertyPath + '.' + key) : key;
         this.__state[key].value.__setParentConfig(propPath, this.__rootConfig);
       }
     }
@@ -78,11 +81,17 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
       }
       this.__state[property].value = newValue;
       if (this.__rootConfig) { // while sub config default value set, the root conf is not available yet.
+
+        if (typeof this.__state[property].onNewValue !== 'undefined') {
+          this.__state[property].onNewValue(this.__state[property].value, this.__rootConfig);
+        }
+
         const exceptionStack: string[] = [];
         this.__rootConfig.__validateAll(exceptionStack);
         if (exceptionStack.length > 0) {
           throw new ConstraintError(exceptionStack.join(', '));
         }
+
       }
     }
 
@@ -119,6 +128,9 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
     }
 
     __validateType<T>(property: string, newValue: T, _type?: propertyTypes): any {
+      if (typeof newValue === 'undefined') {
+        return newValue;
+      }
       const propState = this.__state[property];
       const type = _type ? _type : propState.type;
       const strValue = String(newValue);
@@ -164,16 +176,24 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           }
           return intValue;
       }
-      if (isEnum(type)) {
+      if (Utils.isEnum(type)) {
         if (Number.isInteger(intValue) && typeof (<Enum<any>>type)[intValue] !== 'undefined') {
           return intValue;
         }
         if (typeof newValue === 'string' && typeof (<Enum<any>>type)[strValue] === 'number') {
           return (<Enum<any>>type)[strValue];
         }
-        throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type));
+        throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
       return newValue;
+    }
+
+    toStateString(): string {
+      return JSON.stringify(this.toJSON({enumsAsString: false, attachDescription: false}));
+    }
+
+    toStateStringWithDefaults(): string {
+      return JSON.stringify(this.toJSON({enumsAsString: false, attachDescription: false, attachDefaults: true}));
     }
 
     toJSON(opt?: ToJSONOptions): { [key: string]: any } {
@@ -188,63 +208,83 @@ export function ConfigClassFactory(constructorFunction: new (...args: any[]) => 
           continue;
         }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
-          ret['//' + key] = this.__state[key].description;
+          ret['//[' + key + ']'] = this.__state[key].description;
         }
         // if ConfigClass type?
         if (typeof this.__state[key].value.toJSON !== 'undefined' &&
           typeof this.__state[key].value.__defaults !== 'undefined') {
-          ret[key] = this.__state[key].value.toJSON();
+          opt.attachDefaults = false; // do not cascade defaults, root already knows it.
+          ret[key] = this.__state[key].value.toJSON(opt);
           continue;
         }
-        ret[key] = this.__state[key].value;
-
+        if (opt.enumsAsString === true && Utils.isEnum(this.__state[key].type)) {
+          ret[key] = (<any>this.__state[key].type)[this.__state[key].value];
+        } else {
+        }
       }
       return ret;
     };
 
-    __getFulName(property: string): string {
-      return this.__propPath ? this.__propPath + '.' + property : property;
+    __getFulName(property: string, separator = '.'): string {
+      return (this.__propPath ? this.__propPath + '.' + property : property).replace(new RegExp('\\.', 'gm'), separator);
     }
 
-    ___printMan(): string {
-      let ret = '';
+    __getLongestSwitchName(): number {
+
+      let max = 0;
+
       for (const key of Object.keys(this.__state)) {
-        if (this.__state[key].volatile === true) {
+        const state = this.__state[key];
+        if (state.volatile === true) {
           continue;
         }
-        ret += '--' + this.__getFulName(key) + '\t | \t default:' + this.__defaults[key] + '\t | \t ' + this.__state[key].description + '\n';
+
+        max = Math.max(max, this.__getFulName(key).length);
+        if (state.value && typeof state.value.__getLongestSwitchName === 'function') {
+          max = Math.max(max, state.value.__getLongestSwitchName());
+        }
+      }
+      return max;
+    }
+
+    ___printSwitches(longestName: number = 0): string {
+      let ret = '';
+
+      // get longest switch name
+      longestName = Math.max(longestName, this.__getLongestSwitchName());
+
+      for (const key of Object.keys(this.__state)) {
+        const state = this.__state[key];
+        if (state.volatile === true) {
+          continue;
+        }
+
+        if (state.value && typeof state.value.___printSwitches === 'function') {
+          ret += state.value.___printSwitches(longestName);
+          continue;
+        }
+
+        let def = this.__defaults[key];
+        if (Utils.isEnum(this.__state[key].type) && typeof def !== 'undefined') {
+          def = (<any>this.__state[key].type)[this.__defaults[key]];
+        }
+        if (typeof def === 'string') {
+          def = '\'' + def + '\'';
+        }
+        if (typeof def === 'object') {
+          def = JSON.stringify(def);
+        }
+        ret += '--' + this.__getFulName(key, '-').padEnd(longestName + 2);
+        if (this.__state[key].description) {
+          ret += this.__state[key].description;
+        }
+        if (typeof def !== 'undefined') {
+          ret += ' (default: ' + def + ')';
+        }
+        ret += '\n';
       }
       return ret;
     }
 
-
   };
-}
-
-export function isEnum(instance: Object): boolean {
-  let keys = Object.keys(instance);
-  if (keys.length === 0) {
-    return false;
-  }
-  for (let key of keys) {
-    let value = (<Enum<any>>instance)[key];
-    switch (typeof value) {
-      case 'number':
-        if ((<Enum<any>>instance)[value.toString()] !== key) {
-          return false;
-        }
-        break;
-      case 'string':
-        if (typeof (<Enum<any>>instance)[value] === 'undefined' || (<Enum<any>>instance)[value].toString() !== key) {
-          return false;
-        }
-        break;
-      default:
-        return false;
-    }
-
-  }
-
-
-  return true;
 }

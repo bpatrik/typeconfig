@@ -1,14 +1,14 @@
 import {IPropertyState, PropertyOptions} from './IPropertyState';
 
-export function ConfigProperty<T>(options: PropertyOptions<T> = {}) {
+export function ConfigProperty<T, C>(options: PropertyOptions<T, C> = {}) {
   return (target: any, property: string): any => {
     let type = options.type;
     if (typeof type === 'undefined') {
       type = Reflect.getMetadata('design:type', target, property);
     }
-    const state: { [key: string]: IPropertyState<any> } = target.__state || {};
+    const state: { [key: string]: IPropertyState<any, any> } = target.__state || {};
 
-    state[property] = <IPropertyState<T>>options;
+    state[property] = <IPropertyState<T, C>>options;
     state[property].type = type;
     target.__state = state;
 
