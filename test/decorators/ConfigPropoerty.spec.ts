@@ -439,7 +439,6 @@ describe('ConfigProperty', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(() => {
         c.num = 0;
-        console.log('lefut', c);
       }).to.throw(Error, 'Constraint');
     });
 

@@ -120,7 +120,9 @@ describe('ConfigClass', () => {
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       const c2 = ConfigClassBuilder.attachPrivateInterface(new C2());
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
       await c.load();
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
       chai.expect(c2.toJSON()).to.deep.equal({num: 20});
       await c2.load();
       chai.expect(c2.toJSON()).to.deep.equal({num: 5});
@@ -161,6 +163,7 @@ describe('ConfigClass', () => {
 
 
     it('should rewrite cli arguments', async () => {
+
       @ConfigClass({configPath: filePath, rewriteCLIConfig: true})
       class C {
         @ConfigProperty({description: 'its a number'})

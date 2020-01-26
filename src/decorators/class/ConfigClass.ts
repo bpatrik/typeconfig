@@ -1,7 +1,8 @@
-
 import {ConfigLoader} from '../../ConfigLoader';
 import * as optimist from 'optimist';
-import {ConfigClassOptionsBase, AbstractRootConfigClass} from './base/AbstractRootConfigClass';
+import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
+import {IConfigClassPrivate} from './IConfigClass';
+import {promises as fsp} from 'fs';
 
 
 export interface ConfigCLIOptions {
@@ -73,31 +74,40 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
   options.cli.prefix = options.cli.prefix || 'config-';
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class ConfigClass extends AbstractRootConfigClass(constructorFunction, options) {
+    return class ConfigClass extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate {
 
 
       constructor(...args: any[]) {
         super(args);
 
-        if(optimist.argv['--help']){
+        if (optimist.argv['--help']) {
           console.log(this.__printMan());
         }
       }
 
+
       async load(): Promise<any> {
         if (options.configPath) {
-          await ConfigLoader.loadJSONConfigFile(options.configPath, this);
+
+          try {
+            const config = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
+            this.__loadJSONObject(config);
+          } catch (e) {
+
+          }
         }
         let shouldSave = false;
         let cliParsed = false;
         let envParsed = false;
         if (options.rewriteCLIConfig === true) {
-          shouldSave = ConfigLoader.processCLIArguments(this) || shouldSave;
+          const config = ConfigLoader.getCLIArgsAsObject();
+          shouldSave = this.__loadJSONObject(config) || shouldSave;
           cliParsed = true;
         }
         if (options.rewriteENVConfig === true) {
 
-          shouldSave = ConfigLoader.processEnvVariables(this, this.__getENVAliases()) || shouldSave;
+          const config = ConfigLoader.getENVArgsAsObject(this.__getENVAliases());
+          shouldSave = this.__loadJSONObject(config) || shouldSave;
           envParsed = true;
         }
 
@@ -109,10 +119,10 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
 
         if (cliParsed === false) {
-          ConfigLoader.processCLIArguments(this);
+          this.__loadJSONObject(ConfigLoader.getCLIArgsAsObject());
         }
         if (envParsed === false) {
-          ConfigLoader.processEnvVariables(this, this.__getENVAliases());
+          this.__loadJSONObject(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
       }
 

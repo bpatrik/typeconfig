@@ -21,6 +21,7 @@ export interface IConfigClassBase {
 export interface IConfigClassPrivateBase extends IConfigClassBase {
   __state: { [key: string]: IPropertyState<any, any> };
   __defaults: { [key: string]: any };
+  __values: { [key: string]: any };
   __rootConfig: IConfigClassPrivateBase;
   __propPath: string;
 

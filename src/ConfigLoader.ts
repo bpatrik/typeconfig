@@ -37,6 +37,20 @@ export class ConfigLoader {
    * @return true if the object changed (env variables changed the config)
    */
   public static processEnvVariables(configObject: { [kes: string]: any }, envAlias: { key: string, alias: string }[] = []): boolean {
+
+    const config = ConfigLoader.getENVArgsAsObject();
+    return Loader.loadObject(configObject, config);
+  };
+
+  public static getCLIArgsAsObject() {
+    const argv = optimist.argv;
+    delete (argv._);
+    delete (argv.$0);
+
+    return Loader.flatToObjHierarchy(argv);
+  }
+
+  public static getENVArgsAsObject(envAlias: { key: string, alias: string }[] = []) {
     const varAliases: { [key: string]: any } = {};
     let changed = false;
     envAlias.forEach((alias) => {
@@ -45,17 +59,13 @@ export class ConfigLoader {
         varAliases[alias.key] = process.env[alias.alias];
       }
     });
-    changed = Loader.processHierarchyVar(configObject, varAliases) || changed;
-    changed = Loader.processHierarchyVar(configObject, process.env) || changed;
 
-    return changed;
-  };
+    return Loader.flatToObjHierarchy({...process.env, ...varAliases});
+  }
 
   public static processCLIArguments(configObject: { [kes: string]: any }): boolean {
-    const argv = optimist.argv;
-    delete (argv._);
-    delete (argv.$0);
-    return Loader.processHierarchyVar(configObject, argv);
+    const config = ConfigLoader.getCLIArgsAsObject();
+    return Loader.loadObject(configObject, config);
   };
 
   public static async saveJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }): Promise<void> {
@@ -63,7 +73,7 @@ export class ConfigLoader {
   }
 
 
-  public static async loadJSONConfigFile(configFilePath: string, configObject: object): Promise<boolean> {
+  public static async loadJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }): Promise<boolean> {
     try {
       await fsp.access(configFilePath);
     } catch (e) {

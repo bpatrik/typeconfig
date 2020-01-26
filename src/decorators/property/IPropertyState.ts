@@ -17,6 +17,7 @@ export type propertyTypes =
   | typeof Number
   | typeof Boolean
   | typeof String
+  | typeof Object
   | typeof Date
   | typeof Array
   | ObjectType<any>
@@ -24,7 +25,6 @@ export type propertyTypes =
 
 
 export interface PropertyOptions<T, C> {
-  value?: T;
   type?: propertyTypes;
   onNewValue?: (value: T, config?: C) => void;
   arrayType?: propertyTypes;
@@ -34,8 +34,7 @@ export interface PropertyOptions<T, C> {
   constraint?: PropertyConstraint<T, any>;
 }
 
-export interface IPropertyState<T, C> extends PropertyOptions<T, C> {
-  value?: T;
+export interface IPropertyMetadata<T, C> extends PropertyOptions<T, C> {
   type: propertyTypes;
   arrayType?: propertyTypes;
   volatile?: boolean;
