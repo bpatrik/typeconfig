@@ -12,25 +12,194 @@ describe('ConfigProperty', () => {
 
   describe('should support', () => {
     it('null', () => {
+      @ConfigClass()
+      class C {
 
-      throw new Error('implement');
+        @ConfigProperty()
+        num: number = null;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({num: null});
+      c.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({num: 10});
     });
-    it('undefined', () => {
 
-      throw new Error('implement');
+
+    it('null with sub config', () => {
+
+      @SubConfigClass()
+      class Sub {
+
+        @ConfigProperty()
+        num: number;
+      }
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        sub: Sub = null;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({sub: null});
+      c.sub = new Sub();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {}});
+      c.sub.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}});
+      c.sub = {num: 10};
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}});
+    });
+
+    it('undefined', () => {
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        num: number;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({});
+      c.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({num: 10});
+    });
+
+    it('undefined with sub config', () => {
+
+      @SubConfigClass()
+      class Sub {
+
+        @ConfigProperty()
+        num: number;
+      }
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        sub: Sub;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({});
+      c.sub = new Sub();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {}});
+      c.sub.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}});
+      c.sub = {num: 10};
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}});
     });
 
     it('ratio', () => {
+      @ConfigClass()
+      class C {
 
-      throw new Error('implement');
+        @ConfigProperty({type: 'ratio'})
+        r: number = 0;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({r: 0});
+      c.r = 0.2;
+      chai.expect(c.toJSON()).to.deep.equal({r: 0.2});
+      c.r = 1;
+      chai.expect(c.toJSON()).to.deep.equal({r: 1});
+      c.r = 0;
+      chai.expect(c.toJSON()).to.deep.equal({r: 0});
+      c.r = <any>'0.5';
+      chai.expect(c.toJSON()).to.deep.equal({r: 0.5});
+      chai.expect(() => {
+        c.r = 10;
+      }).to.throw(TypeError, 'ratio');
+      chai.expect(() => {
+        c.r = -10;
+      }).to.throw(TypeError, 'ratio');
+      chai.expect(() => {
+        c.r = 1.1;
+      }).to.throw(TypeError, 'ratio');
+      chai.expect(() => {
+        c.r = -0.1;
+      }).to.throw(TypeError, 'ratio');
     });
     it('unsignedInt', () => {
 
-      throw new Error('implement');
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({type: 'unsignedInt'})
+        num: number = 0;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({num: 0});
+      c.num = 2;
+      chai.expect(c.toJSON()).to.deep.equal({num: 2});
+      c.num = 0;
+      chai.expect(c.toJSON()).to.deep.equal({num: 0});
+      c.num = <any>'5';
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      chai.expect(() => {
+        c.num = -1;
+      }).to.throw(TypeError, 'unsigned');
+      chai.expect(() => {
+        c.num = 100.2;
+      }).to.throw(TypeError, 'unsigned');
+      chai.expect(() => {
+        c.num = <any>'10.6';
+      }).to.throw(TypeError, 'unsigned');
+      chai.expect(() => {
+        c.num = <any>'apple';
+      }).to.throw(TypeError, 'unsigned');
     });
+
     it('positiveFloat', () => {
 
-      throw new Error('implement');
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({type: 'positiveFloat'})
+        num: number = 0;
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({num: 0});
+      c.num = 2;
+      chai.expect(c.toJSON()).to.deep.equal({num: 2});
+      c.num = 0;
+      chai.expect(c.toJSON()).to.deep.equal({num: 0});
+      c.num = <any>'5';
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      c.num = 0.3;
+      chai.expect(c.toJSON()).to.deep.equal({num: 0.3});
+      chai.expect(() => {
+        c.num = -1;
+      }).to.throw(TypeError, 'positive');
     });
 
     it('number', () => {
@@ -41,14 +210,17 @@ describe('ConfigProperty', () => {
         @ConfigProperty()
         num: number = 5.2;
 
+        @ConfigProperty()
+        zero: number = 0;
+
         toJSON(): any {
         }
       }
 
       const c = new C();
-      chai.expect(c.toJSON()).to.deep.equal({num: 5.2});
+      chai.expect(c.toJSON()).to.deep.equal({num: 5.2, zero: 0});
       c.num = 10;
-      chai.expect(c.toJSON()).to.deep.equal({num: 10});
+      chai.expect(c.toJSON()).to.deep.equal({num: 10, zero: 0});
     });
 
     it('integer', () => {
@@ -273,8 +445,83 @@ describe('ConfigProperty', () => {
       }).to.throw(TypeError, 'should be an Enum');
     });
 
+    it('anonym-config-array', () => {
+      @SubConfigClass()
+      class Sub {
+
+
+        @ConfigProperty()
+        num: number;
+
+        constructor(num?: number) {
+          this.num = num;
+        }
+      }
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        sub: Sub[] = [];
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({sub: []});
+      c.sub = [new Sub(2)];
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 2}]});
+      c.sub = [new Sub(2), new Sub(3)];
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 2}, {num: 3}]});
+      c.sub = [{num: 2}, {num: 3}];
+      c.sub[0].num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 10}, {num: 3}]});
+      c.sub = [];
+      chai.expect(c.toJSON()).to.deep.equal({sub: []});
+
+    });
     it('config-array', () => {
-      throw new Error('implement');
+      @SubConfigClass()
+      class Sub {
+
+
+        @ConfigProperty()
+        num: number;
+
+        constructor(num?: number) {
+          this.num = num;
+        }
+
+        toJSON(): any {
+        }
+      }
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({arrayType: Sub})
+        sub: Sub[] = [];
+
+        toJSON(): any {
+        }
+      }
+
+      const c = new C();
+      chai.expect(c.toJSON()).to.deep.equal({sub: []});
+      c.sub = [new Sub(2)];
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 2}]});
+      c.sub = [new Sub(2), new Sub(3)];
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 2}, {num: 3}]});
+      c.sub = <any>[{num: 2}, {num: 3}];
+      c.sub[0].num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: [{num: 10}, {num: 3}]});
+      chai.expect(c.sub[0].toJSON()).to.deep.equal({num: 10});
+      c.sub = [];
+      chai.expect(c.toJSON()).to.deep.equal({sub: []});
+
     });
 
   });
@@ -581,8 +828,57 @@ describe('ConfigProperty', () => {
   describe('on new value', () => {
 
     it('should call function', async () => {
+      @ConfigClass()
+      class C {
+        @ConfigProperty({
+          onNewValue: () => {
+            throw new Error('called');
+          }
+        })
+        num: number = 5;
+      }
 
-      throw new Error('TODO implement');
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(() => {
+        c.num = 10;
+      }).to.throw(Error, 'called');
+
+    });
+
+    it('should access config', async () => {
+
+
+      @SubConfigClass()
+      class S {
+
+        @ConfigProperty({
+          onNewValue: (v, c: C) => {
+            c.a++;
+          }
+        })
+        num: number = 5;
+
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+
+        @ConfigProperty()
+        a: number = 10;
+      }
+
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}, a: 10});
+      c.sub.num=10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
+      c.sub.num=10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
+      c.sub.num=8;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 8}, a: 12});
 
     });
   });

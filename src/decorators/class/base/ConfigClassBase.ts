@@ -16,28 +16,48 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
     constructor(...args: any[]) {
       super(...args);
       this.__state = this.__state || {};
+      this.__values = this.__values || {};
 
       for (let key of Object.keys(this.__values)) {
         if (typeof this.__values[key] === 'undefined') {
           continue;
         }
         this.__defaults[key] = this.__values[key];
-        if (typeof this.__values[key].__defaults !== 'undefined') {
+        if (this.__values[key] &&
+          typeof this.__values[key].__defaults !== 'undefined') {
           this.__defaults[key] = this.__values[key].__defaults;
         }
       }
     }
 
+    get __options(): SubClassOptions {
+      return options;
+    }
 
-    __loadJSONObject(sourceObject: { [key: string]: any }):boolean {
+    static isConfigClassBaseCtor(ctor: any) {
+      return ctor
+        && ctor.prototype
+        && typeof ctor.prototype.__loadJSONObject === 'function'
+        && typeof ctor.prototype.toJSON === 'function';
+    }
+
+    static isConfigClassBase(value: any) {
+      return value
+        && typeof value.__loadJSONObject === 'function'
+        && typeof value.toJSON === 'function';
+    }
+
+    __loadJSONObject(sourceObject: { [key: string]: any }): boolean {
       let changed = false;
+      if (sourceObject === null || typeof sourceObject === 'undefined') {
+        return false;
+      }
       Object.keys(sourceObject).forEach((key) => {
         if (typeof this.__state[key] === 'undefined') {
           return;
         }
         if (this.__state[key].type === Array) {
           if (this.__values[key] != sourceObject[key]) {
-            // TODO is config array type?
             this[key] = sourceObject[key];
             changed = true;
           }
@@ -76,7 +96,8 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           });
         }
 
-        if (typeof this.__values[key] !== 'undefined' &&
+        if (this.__values[key] !== null &&
+          typeof this.__values[key] !== 'undefined' &&
           typeof this.__values[key].__getENVAliases !== 'undefined') {
           ret = ret.concat(this.__values[key].__getENVAliases());
         }
@@ -88,7 +109,8 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       this.__rootConfig = rootConf;
       this.__propPath = propertyPath;
       for (const key of Object.keys(this.__state)) {
-        if (typeof this.__values[key] === 'undefined' ||
+        if (this.__values[key] === null ||
+          typeof this.__values[key] === 'undefined' ||
           typeof this.__values[key].__setParentConfig === 'undefined') {
           continue;
         }
@@ -165,7 +187,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         return newValue;
       }
       const propState = this.__state[property];
-      const type = _type ? _type : propState.type;
+      const type = typeof _type !== 'undefined' ? _type : propState.type;
       const strValue = String(newValue);
       let floatValue: number = NaN;
       if (parseFloat(strValue).toString() === strValue) {
@@ -175,6 +197,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       if (parseInt(strValue).toString() === strValue) {
         intValue = parseInt(strValue);
       }
+
       switch (type) {
         case String:
           return strValue;
@@ -199,7 +222,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           }
           if (propState.arrayType !== Array) {
             for (let i = 0; i < newValue.length; ++i) {
-              newValue[i] = this.__validate(property, newValue[i], propState.arrayType);
+              newValue[i] = this.__validate(property, newValue[i], propState.arrayType ? propState.arrayType : null);
             }
           }
           return newValue;
@@ -208,6 +231,22 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
             throw new TypeError('Value should be an integer, got: ' + newValue);
           }
           return intValue;
+        case 'ratio':
+          if (floatValue < 0 || floatValue > 1) {
+            throw new TypeError('Value should be an ratio, got: ' + newValue);
+          }
+          return floatValue;
+        case 'unsignedInt':
+          if (intValue != floatValue || intValue < 0) {
+            throw new TypeError('Value should be an unsigned integer, got: ' + newValue);
+          }
+          return intValue;
+
+        case 'positiveFloat':
+          if (floatValue < 0) {
+            throw new TypeError('Value should be an positive float, got: ' + newValue);
+          }
+          return floatValue;
       }
       if (Utils.isEnum(type)) {
         if (Number.isInteger(intValue) && typeof (<Enum<any>>type)[intValue] !== 'undefined') {
@@ -218,6 +257,14 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
         throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
+
+      if (ConfigClassBase.isConfigClassBaseCtor(type) && !ConfigClassBase.isConfigClassBase(newValue)) {
+        const o: ConfigClassBase = new (<any>type)();
+        o.__loadJSONObject(newValue);
+        newValue = <any>o;
+      }
+
+
       return newValue;
     }
 
@@ -230,13 +277,15 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
     }
 
     toJSON(opt?: ToJSONOptions): { [key: string]: any } {
-      opt = opt || options;
+      opt = JSON.parse(JSON.stringify(opt || options));
       const ret: { [key: string]: any } = {};
 
       // Attach defaults
       if (opt.attachDefaults === true) {
         ret['__defaults'] = this.__defaults;
       }
+
+      opt.attachDefaults = false; // do not cascade defaults, root already knows it.
 
       for (const key of Object.keys(this.__state)) {
         if (this.__state[key].volatile === true ||
@@ -247,11 +296,25 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           ret['//[' + key + ']'] = this.__state[key].description;
         }
 
+        const isConfigType = (value: any): boolean => {
+          return value &&
+            typeof value.toJSON !== 'undefined' &&
+            typeof value.__defaults !== 'undefined';
+        };
+
         // if ConfigClass type?
-        if (typeof this.__values[key].toJSON !== 'undefined' &&
-          typeof this.__values[key].__defaults !== 'undefined') {
-          opt.attachDefaults = false; // do not cascade defaults, root already knows it.
+        if (isConfigType(this.__values[key])) {
           ret[key] = this.__values[key].toJSON(opt);
+          continue;
+        }
+
+        if (Array.isArray(this.__values[key])) {
+          ret[key] = this.__values[key].map((v: any) => {
+            if (isConfigType(v)) {
+              return v.toJSON(opt);
+            }
+            return v;
+          });
           continue;
         }
 

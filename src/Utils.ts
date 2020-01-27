@@ -2,7 +2,10 @@ import {Enum} from './decorators/property/IPropertyState';
 
 export class Utils {
   static isEnum(instance: Object): boolean {
-    let keys = Object.keys(instance);
+    if(!instance){
+      return false;
+    }
+    const keys = Object.keys(instance);
     if (keys.length === 0) {
       return false;
     }

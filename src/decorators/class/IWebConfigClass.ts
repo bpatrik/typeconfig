@@ -5,5 +5,5 @@ export interface IWebConfigClassPrivate extends IConfigClassPrivateBase, IWebCon
 
 
 export interface IWebConfigClass extends IConfigClassBase {
-  load(configJson?: IWebConfigClass): void;
+  load(configJson?: any): void;
 }

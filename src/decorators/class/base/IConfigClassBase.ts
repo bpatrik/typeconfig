@@ -1,4 +1,5 @@
-import {IPropertyState, propertyTypes} from '../../property/IPropertyState';
+import {IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
+import {SubClassOptions} from '../SubConfigClass';
 
 
 export interface ToJSONOptions {
@@ -19,11 +20,12 @@ export interface IConfigClassBase {
 }
 
 export interface IConfigClassPrivateBase extends IConfigClassBase {
-  __state: { [key: string]: IPropertyState<any, any> };
+  __state: { [key: string]: IPropertyMetadata<any, any> };
   __defaults: { [key: string]: any };
   __values: { [key: string]: any };
   __rootConfig: IConfigClassPrivateBase;
   __propPath: string;
+  __options: SubClassOptions;
 
   toJSON(opt?: ToJSONOptions): { [key: string]: any };
 

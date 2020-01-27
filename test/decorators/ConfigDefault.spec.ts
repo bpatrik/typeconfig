@@ -21,6 +21,9 @@ describe('ConfigDefault', () => {
       num: number = 5;
 
       @ConfigProperty()
+      zero: number = 0;
+
+      @ConfigProperty()
       noDefNum: number;
 
       toJSON(): any {
@@ -28,12 +31,12 @@ describe('ConfigDefault', () => {
     }
 
     const c = new C();
-    chai.expect(c.toJSON()).to.deep.equal({num: 5});
-    chai.expect(c.Defaults).to.deep.equal({num: 5});
+    chai.expect(c.toJSON()).to.deep.equal({num: 5, zero:0});
+    chai.expect(c.Defaults).to.deep.equal({num: 5, zero:0});
     c.num = 10;
     c.noDefNum = 12;
-    chai.expect(c.toJSON()).to.deep.equal({num: 10, noDefNum: 12});
-    chai.expect(c.Defaults).to.deep.equal({num: 5});
+    chai.expect(c.toJSON()).to.deep.equal({num: 10, noDefNum: 12, zero:0});
+    chai.expect(c.Defaults).to.deep.equal({num: 5, zero:0});
   });
 
   it('should have deep default ', () => {

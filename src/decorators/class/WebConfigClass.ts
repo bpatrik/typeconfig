@@ -13,7 +13,7 @@ export interface WebConfigClassOptions extends ConfigClassOptionsBase {
 export function WebConfigClass(options: WebConfigClassOptions = {}): any {
   return (constructorFunction: new (...args: any[]) => any) => {
     return class WebConfigClass extends AbstractRootConfigClass(constructorFunction, options) implements IWebConfigClassPrivate {
-      load(configJson: WebConfigClass = <any>{}): void {
+      load(configJson: any = <any>{}): void {
         WebConfigLoader.loadFrontendConfig(this, configJson);
         if (options.loadQueryOptions) {
           WebConfigLoader.loadUrlParams(this);

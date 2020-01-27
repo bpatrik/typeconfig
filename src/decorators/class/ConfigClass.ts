@@ -33,38 +33,26 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
   };
 }
 
+const cliMap = {
+  attachDescription: 'attachDesc',
+  attachDefaults: 'attachDefs',
+  configPath: 'path',
+  saveIfNotExist: 'save-if-not-exist',
+  rewriteCLIConfig: 'rewrite-cli',
+  rewriteENVConfig: 'rewrite-env',
+  enumsAsString: 'string-enum',
+  exitOnConfig: 'save-and-exist',
+};
+
 function parseCLIOptions(options: ConfigClassOptions) {
-  if (options.cli.enable.configPath === true && optimist.argv[('--' + options.cli.prefix + 'path')]) {
-    options.configPath = optimist.argv[('--' + options.cli.prefix + 'path')];
+  for (let key in cliMap){
+    const cliSwitch = ('--' + options.cli.prefix + (<any>cliMap)[key]);
+    if((<any>options.cli.enable)[key] === true &&
+      typeof optimist.argv[cliSwitch] !== 'undefined'){
+      (<any>options)[key] = optimist.argv[cliSwitch];
+    }
   }
-  if (options.cli.enable.attachDefaults === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'attachDefs')] !== 'undefined') {
-    options.attachDefaults = optimist.argv[('--' + options.cli.prefix + 'attachDefs')];
-  }
-  if (options.cli.enable.attachDescription === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'attachDefs')] !== 'undefined') {
-    options.attachDescription = optimist.argv[('--' + options.cli.prefix + 'attachDefs')];
-  }
-  if (options.cli.enable.rewriteCLIConfig === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'rewrite-cli')] !== 'undefined') {
-    options.rewriteCLIConfig = optimist.argv[('--' + options.cli.prefix + 'rewrite-cli')];
-  }
-  if (options.cli.enable.rewriteENVConfig === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'rewrite-env')] !== 'undefined') {
-    options.rewriteENVConfig = optimist.argv[('--' + options.cli.prefix + 'rewrite-env')];
-  }
-  if (options.cli.enable.enumsAsString === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'string-enum')] !== 'undefined') {
-    options.enumsAsString = optimist.argv[('--' + options.cli.prefix + 'string-enum')];
-  }
-  if (options.cli.enable.saveIfNotExist === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'save-if-not-exist')] !== 'undefined') {
-    options.saveIfNotExist = optimist.argv[('--' + options.cli.prefix + 'save-if-not-exist')];
-  }
-  if (options.cli.enable.exitOnConfig === true &&
-    typeof optimist.argv[('--' + options.cli.prefix + 'save-and-exist')] !== 'undefined') {
-    options.exitOnConfig = optimist.argv[('--' + options.cli.prefix + 'save-and-exist')];
-  }
+
   return options;
 }
 
@@ -140,28 +128,28 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         ret += '\nMeta options: \n';
         ret += '--help'.padEnd(pad) + ' prints this manual \n';
         if (options.cli.enable.configPath === true) {
-          ret += ('--' + options.cli.prefix + 'path').padEnd(pad) + ' sets the config file location \n';
+          ret += ('--' + options.cli.prefix + cliMap.configPath).padEnd(pad) + ' sets the config file location \n';
         }
         if (options.cli.enable.attachDefaults === true) {
-          ret += ('--' + options.cli.prefix + 'attachDefs').padEnd(pad) + ' prints the defaults to the config file \n';
+          ret += ('--' + options.cli.prefix +  cliMap.attachDefaults).padEnd(pad) + ' prints the defaults to the config file \n';
         }
         if (options.cli.enable.attachDescription === true) {
-          ret += ('--' + options.cli.prefix + 'attachDesc').padEnd(pad) + ' prints description to the config file \n';
+          ret += ('--' + options.cli.prefix + cliMap.attachDescription).padEnd(pad) + ' prints description to the config file \n';
         }
         if (options.cli.enable.rewriteCLIConfig === true) {
-          ret += ('--' + options.cli.prefix + 'rewrite-cli').padEnd(pad) + ' updates the config file with the options from cli switches \n';
+          ret += ('--' + options.cli.prefix + cliMap.rewriteCLIConfig).padEnd(pad) + ' updates the config file with the options from cli switches \n';
         }
         if (options.cli.enable.rewriteENVConfig === true) {
-          ret += ('--' + options.cli.prefix + 'rewrite-env').padEnd(pad) + ' updates the config file with the options from environmental variables \n';
+          ret += ('--' + options.cli.prefix + cliMap.rewriteENVConfig).padEnd(pad) + ' updates the config file with the options from environmental variables \n';
         }
         if (options.cli.enable.enumsAsString === true) {
-          ret += ('--' + options.cli.prefix + 'string-enum').padEnd(pad) + ' enums are stored as string in the config file (instead of numbers) \n';
+          ret += ('--' + options.cli.prefix + cliMap.enumsAsString).padEnd(pad) + ' enums are stored as string in the config file (instead of numbers) \n';
         }
         if (options.cli.enable.saveIfNotExist === true) {
-          ret += ('--' + options.cli.prefix + 'save-if-not-exist').padEnd(pad) + ' creates config file if not exist \n';
+          ret += ('--' + options.cli.prefix + cliMap.saveIfNotExist).padEnd(pad) + ' creates config file if not exist \n';
         }
         if (options.cli.enable.exitOnConfig === true) {
-          ret += ('--' + options.cli.prefix + 'save-and-exist').padEnd(pad) + ' creates config file and terminates \n';
+          ret += ('--' + options.cli.prefix + cliMap.exitOnConfig).padEnd(pad) + ' creates config file and terminates \n';
         }
 
         ret += '\n<appname> can be configured through the configuration file, cli switches and environmental variables. \n';
