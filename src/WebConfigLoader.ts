@@ -2,27 +2,11 @@ import {Loader} from './Loader';
 
 export class WebConfigLoader {
 
-  static getUrlParams() {
-    let match,
-      pl = /\+/g,  // Regex for replacing addition symbol with a space
-      search = /([^&=]+)=?([^&]*)/g,
-      decode = (s) => {
-        return decodeURIComponent(s.replace(pl, ' '));
-      },
-      query = window.location.search.substring(1);
-
-    let urlParams = {};
-    while (match = search.exec(query)) {
-      urlParams[decode(match[1])] = decode(match[2]);
-    }
-    return urlParams;
-  }
-
-  static loadUrlParams(targetObject: object) {
+  public static loadUrlParams(targetObject: { [key: string]: any }): void {
     Loader.processHierarchyVar(targetObject, WebConfigLoader.getUrlParams());
   }
 
-  static loadFrontendConfig(targetObject, sourceObject) {
+  public static loadFrontendConfig(targetObject: { [key: string]: any }, sourceObject: { [key: string]: any }): void {
     Object.keys(sourceObject).forEach((key) => {
       if (typeof targetObject[key] === 'undefined') {
         return;
@@ -37,6 +21,22 @@ export class WebConfigLoader {
         targetObject[key] = sourceObject[key];
       }
     });
+  }
+
+  private static getUrlParams(): { [key: string]: any } {
+    let match,
+      pl = /\+/g,  // Regex for replacing addition symbol with a space
+      search = /([^&=]+)=?([^&]*)/g,
+      decode = (s: string) => {
+        return decodeURIComponent(s.replace(pl, ' '));
+      },
+      query = window.location.search.substring(1);
+
+    const urlParams: { [key: string]: any } = {};
+    while (match = search.exec(query)) {
+      urlParams[decode(match[1])] = decode(match[2]);
+    }
+    return urlParams;
   }
 
 }

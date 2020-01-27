@@ -1,6 +1,6 @@
-import * as fs from 'fs';
 import * as optimist from 'optimist';
 import {Loader} from './Loader';
+import {promises as fsp} from 'fs';
 
 export class ConfigLoader {
 
@@ -10,62 +10,77 @@ export class ConfigLoader {
    * @param configFilePath Path to the config file. It will be created if not exist
    * @param envAlias Mapping environmental variables to config variables
    * @param forceRewrite applies cli and env variables to the config an writes the config to file
+   * @deprecated
    */
-  public static loadBackendConfig(configObject: object,
-                                  configFilePath?: string,
-                                  envAlias: string[][] = [],
-                                  forceRewrite = false): void {
-    ConfigLoader.processConfigFile(configFilePath, configObject);
+  public static async loadBackendConfig(configObject: { [kes: string]: any },
+                                        configFilePath?: string,
+                                        envAlias: { key: string, alias: string }[] = [],
+                                        forceRewrite = false): Promise<void> {
+
+    if (configFilePath && await ConfigLoader.loadJSONConfigFile(configFilePath, configObject) === false) {
+      await ConfigLoader.saveJSONConfigFile(configFilePath, configObject);
+    }
 
     let changed = false;
-    changed = ConfigLoader.processArguments(configObject) || changed;
+    changed = ConfigLoader.processCLIArguments(configObject) || changed;
     changed = ConfigLoader.processEnvVariables(configObject, envAlias) || changed;
 
     if (changed && forceRewrite && typeof configFilePath !== 'undefined') {
-      ConfigLoader.saveConfigFile(configFilePath, configObject);
+      await ConfigLoader.saveJSONConfigFile(configFilePath, configObject);
     }
   }
 
-  public static saveConfigFile(configFilePath: string, configObject: object): void {
-    fs.writeFileSync(configFilePath, JSON.stringify(configObject, null, 4));
-  }
+  /**
+   *
+   * @param configObject: object
+   * @param envAlias: string[][]
+   * @return true if the object changed (env variables changed the config)
+   */
+  public static processEnvVariables(configObject: { [kes: string]: any }, envAlias: { key: string, alias: string }[] = []): boolean {
 
-  private static processEnvVariables(configObject: object, envAlias: string[][]): boolean {
-    const varAliases = {};
-    let changed = false;
-    envAlias.forEach((alias) => {
-      if (process.env[alias[0]] && varAliases[alias[1]] !== process.env[alias[0]]) {
-        changed = true;
-        varAliases[alias[1]] = process.env[alias[0]];
-      }
-    });
-    changed = Loader.processHierarchyVar(configObject, varAliases) || changed;
-    changed = Loader.processHierarchyVar(configObject, process.env) || changed;
-
-    return changed;
+    const config = ConfigLoader.getENVArgsAsObject();
+    return Loader.loadObject(configObject, config);
   };
 
-  private static processArguments(configObject: object): boolean {
+  public static getCLIArgsAsObject() {
     const argv = optimist.argv;
     delete (argv._);
     delete (argv.$0);
-    return Loader.processHierarchyVar(configObject, argv);
-  };
 
-  private static processConfigFile(configFilePath: string, configObject: object): void {
-    if (typeof configFilePath !== 'undefined') {
-      if (ConfigLoader.loadConfigFile(configFilePath, configObject) === false) {
-        ConfigLoader.saveConfigFile(configFilePath, configObject);
+    return Loader.flatToObjHierarchy(argv);
+  }
+
+  public static getENVArgsAsObject(envAlias: { key: string, alias: string }[] = []) {
+    const varAliases: { [key: string]: any } = {};
+    let changed = false;
+    envAlias.forEach((alias) => {
+      if (process.env[alias.alias] && varAliases[alias.key] !== process.env[alias.alias]) {
+        changed = true;
+        varAliases[alias.key] = process.env[alias.alias];
       }
-    }
+    });
+
+    return Loader.flatToObjHierarchy({...process.env, ...varAliases});
+  }
+
+  public static processCLIArguments(configObject: { [kes: string]: any }): boolean {
+    const config = ConfigLoader.getCLIArgsAsObject();
+    return Loader.loadObject(configObject, config);
   };
 
-  private static loadConfigFile(configFilePath: string, configObject: object): boolean {
-    if (fs.existsSync(configFilePath) === false) {
+  public static async saveJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }): Promise<void> {
+    await fsp.writeFile(configFilePath, JSON.stringify(configObject, null, 4));
+  }
+
+
+  public static async loadJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }): Promise<boolean> {
+    try {
+      await fsp.access(configFilePath);
+    } catch (e) {
       return false;
     }
     try {
-      const config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+      const config = JSON.parse(await fsp.readFile(configFilePath, 'utf8'));
       Loader.loadObject(configObject, config);
       return true;
     } catch (err) {

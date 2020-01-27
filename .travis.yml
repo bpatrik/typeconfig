@@ -1,0 +1,9 @@
+dist: xenial
+language: node_js
+node_js:
+  - '10'
+  - '12'
+  - '13'
+install:
+  - npm ci
+after_success: npm run coverage

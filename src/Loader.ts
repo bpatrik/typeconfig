@@ -1,13 +1,14 @@
 export class Loader {
-  public static processHierarchyVar(configObject: object, vars: object): boolean {
-    const config = {};
+
+  public static flatToObjHierarchy(vars: { [key: string]: any }) {
+    const cliArgsObj = {};
 
     Object.keys(vars).forEach((key) => {
       const keyArray = key.split('-');
       const value = vars[key];
 
       //recursive settings
-      const setObject = (object: object, keyArray: string[], value: any) => {
+      const setObject = (object: { [key: string]: any }, keyArray: string[], value: any): void => {
         let key = keyArray.shift();
         object[key] = object[key] || {};
 
@@ -26,14 +27,16 @@ export class Loader {
 
         return setObject(object[key], keyArray, value);
       };
-      setObject(config, keyArray, value);
-
+      setObject(cliArgsObj, keyArray, value);
     });
-
-    return this.loadObject(configObject, config);
+    return cliArgsObj;
   }
 
-  public static loadObject(targetObject: object, sourceObject: object): boolean {
+  public static processHierarchyVar(configObject: { [key: string]: any }, vars: { [key: string]: any }): boolean {
+    return this.loadObject(configObject, Loader.flatToObjHierarchy(vars));
+  }
+
+  public static loadObject(targetObject: { [key: string]: any }, sourceObject: { [key: string]: any }): boolean {
     let changed = false;
     Object.keys(sourceObject).forEach((key) => {
       if (typeof targetObject[key] === 'undefined') {

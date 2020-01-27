@@ -6,3 +6,4 @@ TypeConfig.iml
 /**/*.d.ts
 !karma.conf.js
 node_modules/
+coverage/

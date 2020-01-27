@@ -1,5 +1,8 @@
 import {ConfigLoader} from '../src/ConfigLoader';
 
+const chai: any = require('chai');
+const should = chai.should();
+
 describe('ConfigLoader', () => {
 
 
@@ -17,9 +20,9 @@ describe('ConfigLoader', () => {
     };
     process.env['sub-data-a'] = '2';
     ConfigLoader.loadBackendConfig(testObj);
-    expect(testObj.sub.data.a).toEqual('2');
-    expect(testObj.sub.data.b).toEqual('testText');
-    expect(testObj.sub2.data).toEqual(10);
+    should.equal(testObj.sub.data.a, '2');
+    should.equal(testObj.sub.data.b, 'testText');
+    should.equal(testObj.sub2.data, 10);
   });
 
 
