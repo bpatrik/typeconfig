@@ -1,12 +1,13 @@
 /* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass, ConfigClassOptions} from '../../src/decorators/class/ConfigClass';
+import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {TestHelper} from '../TestHelper';
 import {promises as fsp} from 'fs';
 import * as optimist from 'optimist';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
+import {ConfigClassOptions} from '../../src/decorators/class/IConfigClass';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
