@@ -3,6 +3,7 @@ import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertySt
 import {ConstraintError} from '../../exceptions/ConstraintError';
 import {SubClassOptions} from '../SubConfigClass';
 import {Utils} from '../../../Utils';
+import {Loader} from '../../../Loader';
 
 
 export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
@@ -45,6 +46,11 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return value
         && typeof value.__loadJSONObject === 'function'
         && typeof value.toJSON === 'function';
+    }
+
+
+    __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void {
+      Loader.loadObject(this.__defaults, sourceObject);
     }
 
     __loadJSONObject(sourceObject: { [key: string]: any }): boolean {
@@ -187,7 +193,10 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         return newValue;
       }
       const propState = this.__state[property];
-      const type = typeof _type !== 'undefined' ? _type : propState.type;
+      const type = typeof _type !== 'undefined' ? _type :
+        (propState.typeBuilder ? propState.typeBuilder(newValue, this.__rootConfig) :
+          propState.type);
+
       const strValue = String(newValue);
       let floatValue: number = NaN;
       if (parseFloat(strValue).toString() === strValue) {
@@ -222,7 +231,9 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           }
           if (propState.arrayType !== Array) {
             for (let i = 0; i < newValue.length; ++i) {
-              newValue[i] = this.__validate(property, newValue[i], propState.arrayType ? propState.arrayType : null);
+              const t = propState.arrayTypeBuilder ? propState.arrayTypeBuilder(newValue[i], this.__rootConfig) :
+                (propState.arrayType ? propState.arrayType : null);
+              newValue[i] = this.__validate(property, newValue[i], t);
             }
           }
           return newValue;
@@ -277,7 +288,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
     }
 
     toJSON(opt?: ToJSONOptions): { [key: string]: any } {
-      opt = JSON.parse(JSON.stringify(opt || options));
+      opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
       const ret: { [key: string]: any } = {};
 
       // Attach defaults
@@ -331,7 +342,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return (this.__propPath ? this.__propPath + '.' + property : property).replace(new RegExp('\\.', 'gm'), separator);
     }
 
-    __getLongestSwitchName(): number {
+    __getLongestOptionName(printENVAlias: boolean): number {
 
       let max = 0;
 
@@ -343,18 +354,23 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
 
         max = Math.max(max, this.__getFulName(key).length);
-        if (value && typeof value.__getLongestSwitchName === 'function') {
-          max = Math.max(max, value.__getLongestSwitchName());
+        if (printENVAlias && typeof state.envAlias !== 'undefined') {
+          max = Math.max(max, state.envAlias.length);
+
+        }
+        if (value && typeof value.__getLongestOptionName === 'function') {
+          max = Math.max(max, value.__getLongestOptionName());
         }
       }
       return max;
     }
 
-    ___printSwitches(longestName: number = 0): string {
-      let ret = '';
 
+    ___printOption(prefix: string, printENVAlias: boolean, longestName: number = 0): string {
+      let ret = '';
+      const padding = '  ';
       // get longest switch name
-      longestName = Math.max(longestName, this.__getLongestSwitchName());
+      longestName = Math.max(longestName, this.__getLongestOptionName(printENVAlias));
 
       for (const key of Object.keys(this.__state)) {
         const state = this.__state[key];
@@ -363,8 +379,8 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           continue;
         }
 
-        if (value && typeof value.___printSwitches === 'function') {
-          ret += value.___printSwitches(longestName);
+        if (value && typeof value.___printOption === 'function') {
+          ret += value.___printOption(prefix, printENVAlias, longestName);
           continue;
         }
 
@@ -378,7 +394,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         if (typeof def === 'object') {
           def = JSON.stringify(def);
         }
-        ret += '--' + this.__getFulName(key, '-').padEnd(longestName + 2);
+        ret += padding + prefix + this.__getFulName(key, '-').padEnd(longestName + prefix.length + padding.length);
         if (this.__state[key].description) {
           ret += this.__state[key].description;
         }
@@ -386,6 +402,9 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           ret += ' (default: ' + def + ')';
         }
         ret += '\n';
+        if (typeof this.__state[key].envAlias !== 'undefined' && printENVAlias === true) {
+          ret += padding + this.__state[key].envAlias.padEnd(longestName + prefix.length + padding.length) + ' same as ' + prefix + this.__getFulName(key, '-') + '\n';
+        }
       }
       return ret;
     }

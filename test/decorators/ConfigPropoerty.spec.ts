@@ -362,6 +362,66 @@ describe('ConfigProperty', () => {
       }).to.throw(TypeError, 'should be an Enum');
     });
 
+
+    it('type factory', () => {
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({
+          typeBuilder: (v: any, c: any) => {
+            if (typeof v === 'string') {
+              return String;
+            }
+            return 'integer';
+          }
+        })
+        var: any = 'apple';
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({var: 'apple'});
+      c.var = 'pear';
+      chai.expect(c.toJSON()).to.deep.equal({var: 'pear'});
+      c.var = 5;
+      chai.expect(c.toJSON()).to.deep.equal({var: 5});
+      chai.expect(() => {
+        c.var = 0.1;
+      }).to.throw(TypeError, 'integer');
+    });
+
+
+    it('array-type factory', () => {
+
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({
+          arrayTypeBuilder: (v: any) => {
+            if (typeof v === 'string') {
+              return String;
+            }
+            return 'integer';
+          }
+        })
+        var: any[] = ['apple'];
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({var: ['apple']});
+      c.var = ['pear'];
+      chai.expect(c.toJSON()).to.deep.equal({var: ['pear']});
+      c.var = [5];
+      chai.expect(c.toJSON()).to.deep.equal({var: [5]});
+      chai.expect(() => {
+        c.var = [0.1];
+      }).to.throw(TypeError, 'integer');
+    });
+
     it('string-array', () => {
       @ConfigClass()
       class C {
@@ -771,9 +831,13 @@ describe('ConfigProperty', () => {
   });
 
   describe('env alias', () => {
-    afterEach(() => {
+
+    const cleanUp = () => {
       delete process.env['numAlias'];
-    });
+    };
+
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
 
     it('should be loaded', async () => {
 
@@ -873,11 +937,11 @@ describe('ConfigProperty', () => {
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}, a: 10});
-      c.sub.num=10;
+      c.sub.num = 10;
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
-      c.sub.num=10;
+      c.sub.num = 10;
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
-      c.sub.num=8;
+      c.sub.num = 8;
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 8}, a: 12});
 
     });

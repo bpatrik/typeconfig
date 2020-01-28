@@ -50,9 +50,11 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
 
   __getFulName(property: string, separator?: string): string;
 
-  __getLongestSwitchName(): number;
+  __getLongestOptionName(printENVAlias: boolean): number;
 
-  ___printSwitches(longestName?: number): string;
+  ___printOption(prefix: string, printENVAlias: boolean, longestName?: number): string;
 
+  __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void;
 
+  __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
 }
