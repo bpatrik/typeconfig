@@ -1,25 +1,28 @@
 import {IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase';
 import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
 import {ConstraintError} from '../../exceptions/ConstraintError';
-import {SubClassOptions} from '../SubConfigClass';
 import {Utils} from '../../../Utils';
 import {Loader} from '../../../Loader';
+import {SubClassOptions} from '../SubClassOptions';
 
 
-export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
-  return class ConfigClassBase extends constructorFunction implements IConfigClassPrivateBase {
+export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions) {
+  if (typeof options === 'undefined') {
+    throw new Error('options not set');
+  }
+  return class ConfigClassBaseType extends constructorFunction implements IConfigClassPrivateBase {
     __state: { [key: string]: IPropertyMetadata<any, any> };
     __defaults: { [key: string]: any } = {};
     __values: { [key: string]: any };
-    __rootConfig: ConfigClassBase;
-    __propPath: string = '';
+    __rootConfig: ConfigClassBaseType;
+    __propPath = '';
 
     constructor(...args: any[]) {
       super(...args);
       this.__state = this.__state || {};
       this.__values = this.__values || {};
 
-      for (let key of Object.keys(this.__values)) {
+      for (const key of Object.keys(this.__values)) {
         if (typeof this.__values[key] === 'undefined') {
           continue;
         }
@@ -63,7 +66,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           return;
         }
         if (this.__state[key].type === Array) {
-          if (this.__values[key] != sourceObject[key]) {
+          if (this.__values[key] !== sourceObject[key]) {
             this[key] = sourceObject[key];
             changed = true;
           }
@@ -83,7 +86,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           return;
         }
 
-        if (this.__values[key] != sourceObject[key]) {
+        if (this.__values[key] !== sourceObject[key]) {
           this[key] = sourceObject[key];
           changed = true;
         }
@@ -111,7 +114,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return ret;
     }
 
-    __setParentConfig(propertyPath: string, rootConf: ConfigClassBase): void {
+    __setParentConfig(propertyPath: string, rootConf: ConfigClassBaseType): void {
       this.__rootConfig = rootConf;
       this.__propPath = propertyPath;
       for (const key of Object.keys(this.__state)) {
@@ -188,8 +191,16 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       }
     }
 
+    /**
+     * Checks if the value is valid with the given type.
+     * Makes basic casting and conversion
+     * @param property
+     * @param newValue
+     * @param _type
+     * @private
+     */
     __validateType<T>(property: string, newValue: T, _type?: propertyTypes): any {
-      if (typeof newValue === 'undefined') {
+      if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
       const propState = this.__state[property];
@@ -198,13 +209,13 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           propState.type);
 
       const strValue = String(newValue);
-      let floatValue: number = NaN;
+      let floatValue = NaN;
       if (parseFloat(strValue).toString() === strValue) {
         floatValue = parseFloat(strValue);
       }
-      let intValue: number = NaN;
-      if (parseInt(strValue).toString() === strValue) {
-        intValue = parseInt(strValue);
+      let intValue = NaN;
+      if (parseInt(strValue, 10).toString() === strValue) {
+        intValue = parseInt(strValue, 10);
       }
 
       switch (type) {
@@ -238,7 +249,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           }
           return newValue;
         case 'integer':
-          if (intValue != floatValue) {
+          if (intValue !== floatValue) {
             throw new TypeError('Value should be an integer, got: ' + newValue);
           }
           return intValue;
@@ -248,7 +259,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           }
           return floatValue;
         case 'unsignedInt':
-          if (intValue != floatValue || intValue < 0) {
+          if (intValue !== floatValue || intValue < 0) {
             throw new TypeError('Value should be an unsigned integer, got: ' + newValue);
           }
           return intValue;
@@ -260,17 +271,17 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           return floatValue;
       }
       if (Utils.isEnum(type)) {
-        if (Number.isInteger(intValue) && typeof (<Enum<any>>type)[intValue] !== 'undefined') {
+        if (Number.isInteger(intValue) && typeof (<Enum>type)[intValue] !== 'undefined') {
           return intValue;
         }
-        if (typeof newValue === 'string' && typeof (<Enum<any>>type)[strValue] === 'number') {
-          return (<Enum<any>>type)[strValue];
+        if (typeof newValue === 'string' && typeof (<Enum>type)[strValue] === 'number') {
+          return (<Enum>type)[strValue];
         }
         throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
 
-      if (ConfigClassBase.isConfigClassBaseCtor(type) && !ConfigClassBase.isConfigClassBase(newValue)) {
-        const o: ConfigClassBase = new (<any>type)();
+      if (ConfigClassBaseType.isConfigClassBaseCtor(type) && !ConfigClassBaseType.isConfigClassBase(newValue)) {
+        const o: ConfigClassBaseType = new (<any>type)();
         o.__loadJSONObject(newValue);
         newValue = <any>o;
       }
@@ -336,7 +347,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
       }
       return ret;
-    };
+    }
 
     __getFulName(property: string, separator = '.'): string {
       return (this.__propPath ? this.__propPath + '.' + property : property).replace(new RegExp('\\.', 'gm'), separator);
@@ -403,7 +414,8 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
         ret += '\n';
         if (typeof this.__state[key].envAlias !== 'undefined' && printENVAlias === true) {
-          ret += padding + this.__state[key].envAlias.padEnd(longestName + prefix.length + padding.length) + ' same as ' + prefix + this.__getFulName(key, '-') + '\n';
+          ret += padding + this.__state[key].envAlias.padEnd(longestName + prefix.length + padding.length) +
+            ' same as ' + prefix + this.__getFulName(key, '-') + '\n';
         }
       }
       return ret;

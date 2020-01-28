@@ -1,15 +1,10 @@
-import {ToJSONOptions} from './base/IConfigClassBase';
 import {ConfigClassBase} from './base/ConfigClassBase';
+import {SubClassOptions} from './SubClassOptions';
 
-export interface SubClassOptions extends ToJSONOptions {
-  attachDescription?: boolean;
-  attachDefaults?: boolean;
-  enumsAsString?: boolean;
-}
 
-export function SubConfigClass(options?: SubClassOptions): any {
+export function SubConfigClass(options: SubClassOptions = {}): any {
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class SubConfigClass extends ConfigClassBase(constructorFunction, options) {
+    return class SubConfigClassType extends ConfigClassBase(constructorFunction, options) {
 
     };
   };

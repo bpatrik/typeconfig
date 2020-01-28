@@ -24,8 +24,8 @@ export class WebConfigLoader {
   }
 
   private static getUrlParams(): { [key: string]: any } {
-    let match,
-      pl = /\+/g,  // Regex for replacing addition symbol with a space
+    let match;
+    const pl = /\+/g,  // Regex for replacing addition symbol with a space
       search = /([^&=]+)=?([^&]*)/g,
       decode = (s: string) => {
         return decodeURIComponent(s.replace(pl, ' '));

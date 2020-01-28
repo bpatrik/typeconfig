@@ -1,5 +1,5 @@
 import {IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
-import {SubClassOptions} from '../SubConfigClass';
+import {SubClassOptions} from '../SubClassOptions';
 
 
 export interface ToJSONOptions {
@@ -46,7 +46,6 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
   __validateConstrains<T>(property: string, newValue: T, exceptionStack?: string[]): void;
 
   __validateType<T>(property: string, newValue: T, _type?: propertyTypes): any;
-
 
   __getFulName(property: string, separator?: string): string;
 
