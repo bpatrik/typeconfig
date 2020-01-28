@@ -54,5 +54,7 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
 
   ___printOption(prefix: string, printENVAlias: boolean, longestName?: number): string;
 
+  __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void;
 
+  __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
 }

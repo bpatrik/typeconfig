@@ -3,6 +3,7 @@ import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertySt
 import {ConstraintError} from '../../exceptions/ConstraintError';
 import {SubClassOptions} from '../SubConfigClass';
 import {Utils} from '../../../Utils';
+import {Loader} from '../../../Loader';
 
 
 export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions = {}) {
@@ -45,6 +46,11 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return value
         && typeof value.__loadJSONObject === 'function'
         && typeof value.toJSON === 'function';
+    }
+
+
+    __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void {
+      Loader.loadObject(this.__defaults, sourceObject);
     }
 
     __loadJSONObject(sourceObject: { [key: string]: any }): boolean {
@@ -388,7 +394,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         if (typeof def === 'object') {
           def = JSON.stringify(def);
         }
-        ret += padding+ prefix + this.__getFulName(key, '-').padEnd(longestName + prefix.length + padding.length);
+        ret += padding + prefix + this.__getFulName(key, '-').padEnd(longestName + prefix.length + padding.length);
         if (this.__state[key].description) {
           ret += this.__state[key].description;
         }
@@ -397,7 +403,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
         ret += '\n';
         if (typeof this.__state[key].envAlias !== 'undefined' && printENVAlias === true) {
-          ret += padding+ this.__state[key].envAlias.padEnd(longestName + prefix.length+ padding.length) + ' same as ' + prefix + this.__getFulName(key, '-') +'\n';
+          ret += padding + this.__state[key].envAlias.padEnd(longestName + prefix.length + padding.length) + ' same as ' + prefix + this.__getFulName(key, '-') + '\n';
         }
       }
       return ret;

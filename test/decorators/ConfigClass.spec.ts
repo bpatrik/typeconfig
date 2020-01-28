@@ -77,6 +77,40 @@ describe('ConfigClass', () => {
   });
 
   describe('man page', () => {
+
+    it('should print default override options', () => {
+
+      @ConfigClass({cli: {defaults: {enabled: true}}})
+      class C {
+
+        @ConfigProperty()
+        num: number = 5;
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.__printMan()).to.equal('Usage: <appname> [options] \n' +
+        '\n' +
+        'Meta cli options: \n' +
+        '--help                           prints this manual \n' +
+        '\n' +
+        '<appname> can be configured through the configuration file, cli switches and environmental variables. \n' +
+        'All settings are case sensitive. \n' +
+        'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
+        'and through env variable: \'SET MyConf=5\' . \n' +
+        '\n' +
+        'Default values can be also overwritten by prefixing the options with \'default-\', \n' +
+        ' like \'<appname> --default-MyConf=5\' and  \'SET default-MyConf=5\'\n' +
+        '\n' +
+        'App CLI options: \n' +
+        '  --num     (default: 5)\n' +
+        '\n' +
+        'Environmental variables: \n' +
+        '  num   (default: 5)\n');
+
+    });
+
+
     it('should not cli settings', () => {
 
       @ConfigClass({attachDescription: true})
@@ -342,17 +376,19 @@ describe('ConfigClass', () => {
 
   describe('cli options', () => {
 
-    beforeEach(() => {
+    const cleanUp = () => {
 
-      delete optimist.argv['--config-path'];
-      delete optimist.argv['--config-attachDefs'];
-      delete optimist.argv['--config-attachDesc'];
-      delete optimist.argv['--config-rewrite-cli'];
-      delete optimist.argv['--config-rewrite-env'];
-      delete optimist.argv['--config-string-enum'];
-      delete optimist.argv['--config-save-and-exist'];
-      delete optimist.argv['--config-save-if-not-exist'];
-    });
+      delete optimist.argv['config-path'];
+      delete optimist.argv['config-attachDefs'];
+      delete optimist.argv['config-attachDesc'];
+      delete optimist.argv['config-rewrite-cli'];
+      delete optimist.argv['config-rewrite-env'];
+      delete optimist.argv['config-string-enum'];
+      delete optimist.argv['config-save-and-exist'];
+      delete optimist.argv['config-save-if-not-exist'];
+    };
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
 
 
     it('should not set', async () => {
@@ -393,14 +429,14 @@ describe('ConfigClass', () => {
 
     it('should set', async () => {
 
-      optimist.argv['--config-path'] = 'test';
-      optimist.argv['--config-attachDefs'] = true;
-      optimist.argv['--config-attachDesc'] = true;
-      optimist.argv['--config-rewrite-cli'] = true;
-      optimist.argv['--config-rewrite-env'] = true;
-      optimist.argv['--config-string-enum'] = true;
-      optimist.argv['--config-save-and-exist'] = true;
-      optimist.argv['--config-save-if-not-exist'] = false;
+      optimist.argv['config-path'] = 'test';
+      optimist.argv['config-attachDefs'] = true;
+      optimist.argv['config-attachDesc'] = true;
+      optimist.argv['config-rewrite-cli'] = true;
+      optimist.argv['config-rewrite-env'] = true;
+      optimist.argv['config-string-enum'] = true;
+      optimist.argv['config-save-and-exist'] = true;
+      optimist.argv['config-save-if-not-exist'] = false;
 
       @ConfigClass({
         cli: {
@@ -436,7 +472,147 @@ describe('ConfigClass', () => {
 
     });
 
+
+    it('should not set', async () => {
+
+      optimist.argv['config-path'] = 'test';
+      optimist.argv['config-attachDefs'] = true;
+      optimist.argv['config-attachDesc'] = true;
+      optimist.argv['config-rewrite-cli'] = true;
+      optimist.argv['config-rewrite-env'] = true;
+      optimist.argv['config-string-enum'] = true;
+      optimist.argv['config-save-and-exist'] = true;
+      optimist.argv['config-save-if-not-exist'] = false;
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({description: 'this is a number'})
+        num: number = 5;
+
+      }
+
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const opts: ConfigClassOptions = c.__options;
+      chai.expect(opts.configPath).to.not.equal('test');
+      chai.expect(opts.enumsAsString).to.not.equal(true);
+      chai.expect(opts.attachDescription).to.not.equal(true);
+      chai.expect(opts.rewriteENVConfig).to.not.equal(true);
+      chai.expect(opts.rewriteCLIConfig).to.not.equal(true);
+      chai.expect(opts.attachDefaults).to.not.equal(true);
+      chai.expect(opts.saveIfNotExist).to.not.equal(false);
+
+    });
+
   });
 
+  describe('defaults', () => {
+
+    const cleanUp = () => {
+
+      delete optimist.argv['default-num'];
+      delete process.env['default-num'];
+      delete optimist.argv['default-num2'];
+      delete optimist.argv['num2'];
+      delete process.env['default-num2'];
+      delete process.env['num2'];
+    };
+
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
+
+
+    it('should set through env', async () => {
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        }
+      })
+      class C {
+
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number = 5;
+
+      }
+
+      process.env['default-num'] = '1001';
+      process.env['default-num2'] = '501';
+      process.env['num2'] = '52';
+      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+
+      chai.expect(c.__defaults).to.deep.equal({num: '1001', num2: '501'});
+      chai.expect(c.num).to.equal(1001);
+      chai.expect(c.num2).to.equal(52);
+    });
+
+
+    it('should set through cli', async () => {
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        }
+      })
+      class C {
+
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number = 5;
+
+      }
+
+      optimist.argv['default-num'] = '100';
+      optimist.argv['default-num2'] = '50';
+      optimist.argv['num2'] = '52';
+      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+
+      chai.expect(c.__defaults).to.deep.equal({num: '100', num2: '50'});
+      chai.expect(c.num).to.equal(100);
+      chai.expect(c.num2).to.equal(52);
+
+
+    });
+
+
+    it('should not set', async () => {
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number = 5;
+
+      }
+
+      process.env['default-num'] = '100';
+      process.env['default-num2'] = '50';
+      optimist.argv['default-num'] = '100';
+      optimist.argv['default-num2'] = '50';
+      optimist.argv['num2'] = '52';
+      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+
+      chai.expect(c.__defaults).to.deep.equal({num: 5, num2: 5});
+      chai.expect(c.num).to.equal(5);
+      chai.expect(c.num2).to.equal(52);
+
+
+    });
+
+
+  });
 
 });

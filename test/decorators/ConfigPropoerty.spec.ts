@@ -831,9 +831,13 @@ describe('ConfigProperty', () => {
   });
 
   describe('env alias', () => {
-    afterEach(() => {
+
+    const cleanUp = () => {
       delete process.env['numAlias'];
-    });
+    };
+
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
 
     it('should be loaded', async () => {
 
