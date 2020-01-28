@@ -50,9 +50,9 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
 
   __getFulName(property: string, separator?: string): string;
 
-  __getLongestSwitchName(): number;
+  __getLongestOptionName(printENVAlias: boolean): number;
 
-  ___printSwitches(longestName?: number): string;
+  ___printOption(prefix: string, printENVAlias: boolean, longestName?: number): string;
 
 
 }

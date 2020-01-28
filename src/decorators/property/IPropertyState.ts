@@ -25,10 +25,32 @@ export type propertyTypes =
 
 
 export interface PropertyOptions<T, C> {
+  /**
+   * Can be manual set, but annotation can also infer.
+   * It determines the value validation
+   */
   type?: propertyTypes;
+  /**
+   * If both type and typeBuilder is present, typeBuilder will be used
+   * @param value
+   * @param config
+   */
   typeBuilder?: (value: T, config?: C) => propertyTypes
+  /**
+   * If the value changes, this function will be called
+   * @param value
+   * @param config
+   */
   onNewValue?: (value: T, config?: C) => void;
+  /**
+   * If type is Array, this should be set manually.
+   */
   arrayType?: propertyTypes;
+  /**
+   * If both arrayType and arrayTypeBuilder is present, arrayTypeBuilder will be used
+   * @param value
+   * @param config
+   */
   arrayTypeBuilder?: (value: T, config?: C) => propertyTypes;
   volatile?: boolean;
   description?: string;

@@ -82,7 +82,7 @@ describe('ConfigClass', () => {
       @ConfigClass({attachDescription: true})
       class C {
 
-        @ConfigProperty({description: 'this is a number'})
+        @ConfigProperty({description: 'this is a number', envAlias: 'Number'})
         num: number = 5;
 
       }
@@ -90,7 +90,7 @@ describe('ConfigClass', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.__printMan()).to.equal('Usage: <appname> [options] \n' +
         '\n' +
-        'Meta options: \n' +
+        'Meta cli options: \n' +
         '--help                           prints this manual \n' +
         '\n' +
         '<appname> can be configured through the configuration file, cli switches and environmental variables. \n' +
@@ -98,8 +98,12 @@ describe('ConfigClass', () => {
         'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
         'and through env variable: \'SET MyConf=5\' . \n' +
         '\n' +
-        'App options: \n' +
-        '--num  this is a number (default: 5)\n');
+        'App CLI options: \n' +
+        '  --num    this is a number (default: 5)\n' +
+        '\n' +
+        'Environmental variables: \n' +
+        '  num     this is a number (default: 5)\n' +
+        '  Number   same as num\n');
 
     });
 
@@ -129,7 +133,7 @@ describe('ConfigClass', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.__printMan()).to.equal('Usage: <appname> [options] \n' +
         '\n' +
-        'Meta options: \n' +
+        'Meta cli options: \n' +
         '--help                           prints this manual \n' +
         '--config-path                    sets the config file location \n' +
         '--config-attachDefs              prints the defaults to the config file \n' +
@@ -145,8 +149,11 @@ describe('ConfigClass', () => {
         'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
         'and through env variable: \'SET MyConf=5\' . \n' +
         '\n' +
-        'App options: \n' +
-        '--num  this is a number (default: 5)\n');
+        'App CLI options: \n' +
+        '  --num    this is a number (default: 5)\n' +
+        '\n' +
+        'Environmental variables: \n' +
+        '  num  this is a number (default: 5)\n');
 
     });
   });
@@ -335,7 +342,7 @@ describe('ConfigClass', () => {
 
   describe('cli options', () => {
 
-    beforeEach(()=>{
+    beforeEach(() => {
 
       delete optimist.argv['--config-path'];
       delete optimist.argv['--config-attachDefs'];
@@ -371,7 +378,7 @@ describe('ConfigClass', () => {
       }
 
       let c = ConfigClassBuilder.attachPrivateInterface(new C());
-      let opts:ConfigClassOptions = c.__options;
+      let opts: ConfigClassOptions = c.__options;
 
       chai.expect(opts.configPath).to.not.equal('test');
       chai.expect(opts.enumsAsString).to.not.equal(true);
@@ -394,6 +401,7 @@ describe('ConfigClass', () => {
       optimist.argv['--config-string-enum'] = true;
       optimist.argv['--config-save-and-exist'] = true;
       optimist.argv['--config-save-if-not-exist'] = false;
+
       @ConfigClass({
         cli: {
           enable: {
@@ -417,7 +425,7 @@ describe('ConfigClass', () => {
 
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      const opts:ConfigClassOptions = c.__options;
+      const opts: ConfigClassOptions = c.__options;
       chai.expect(opts.configPath).to.equal('test');
       chai.expect(opts.enumsAsString).to.equal(true);
       chai.expect(opts.attachDescription).to.equal(true);

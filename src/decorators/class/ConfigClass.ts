@@ -125,7 +125,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let ret = 'Usage: <appname> [options] \n';
 
         const pad: number = options.cli.prefix.length + 25;
-        ret += '\nMeta options: \n';
+        ret += '\nMeta cli options: \n';
         ret += '--help'.padEnd(pad) + ' prints this manual \n';
         if (options.cli.enable.configPath === true) {
           ret += ('--' + options.cli.prefix + cliMap.configPath).padEnd(pad) + ' sets the config file location \n';
@@ -157,7 +157,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         ret += 'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n';
         ret += 'and through env variable: \'SET MyConf=5\' . \n';
 
-        ret += '\nApp options: \n' + this.___printSwitches();
+        ret += '\nApp CLI options: \n' + this.___printOption('--',false);
+        ret += '\nEnvironmental variables: \n' + this.___printOption('',true);
         return ret;
       }
 
