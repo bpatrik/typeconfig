@@ -1,3 +1,4 @@
+/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
 import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
@@ -31,12 +32,12 @@ describe('ConfigDefault', () => {
     }
 
     const c = new C();
-    chai.expect(c.toJSON()).to.deep.equal({num: 5, zero:0});
-    chai.expect(c.Defaults).to.deep.equal({num: 5, zero:0});
+    chai.expect(c.toJSON()).to.deep.equal({num: 5, zero: 0});
+    chai.expect(c.Defaults).to.deep.equal({num: 5, zero: 0});
     c.num = 10;
     c.noDefNum = 12;
-    chai.expect(c.toJSON()).to.deep.equal({num: 10, noDefNum: 12, zero:0});
-    chai.expect(c.Defaults).to.deep.equal({num: 5, zero:0});
+    chai.expect(c.toJSON()).to.deep.equal({num: 10, noDefNum: 12, zero: 0});
+    chai.expect(c.Defaults).to.deep.equal({num: 5, zero: 0});
   });
 
   it('should have deep default ', () => {

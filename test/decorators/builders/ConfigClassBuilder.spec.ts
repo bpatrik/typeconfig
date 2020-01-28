@@ -1,3 +1,4 @@
+/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
 import {ConfigClass} from '../../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../../src/decorators/property/ConfigPropoerty';
@@ -25,12 +26,12 @@ describe('ConfigClassBuilder', () => {
     chai.expect(c1.num).to.deep.equal(c2.num);
     chai.expect(c1.num).to.deep.equal(c3.num);
     chai.expect(c1.num).to.deep.equal(c4.num);
-    chai.expect(c1.toJSON()).to.deep.equal({num:5});
-    chai.expect(c2.toJSON()).to.deep.equal({num:5});
-    chai.expect(c3.toJSON()).to.deep.equal({num:5});
-    chai.expect(c4.toJSON()).to.deep.equal({num:5});
-    chai.expect(c1.__defaults).to.deep.equal({num:5});
-    chai.expect(c3.__defaults).to.deep.equal({num:5});
+    chai.expect(c1.toJSON()).to.deep.equal({num: 5});
+    chai.expect(c2.toJSON()).to.deep.equal({num: 5});
+    chai.expect(c3.toJSON()).to.deep.equal({num: 5});
+    chai.expect(c4.toJSON()).to.deep.equal({num: 5});
+    chai.expect(c1.__defaults).to.deep.equal({num: 5});
+    chai.expect(c3.__defaults).to.deep.equal({num: 5});
   });
 
 

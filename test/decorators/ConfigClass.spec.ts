@@ -1,3 +1,4 @@
+/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
 import {ConfigClass, ConfigClassOptions} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
@@ -413,8 +414,8 @@ describe('ConfigClass', () => {
 
       }
 
-      let c = ConfigClassBuilder.attachPrivateInterface(new C());
-      let opts: ConfigClassOptions = c.__options;
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const opts: ConfigClassOptions = c.__options;
 
       chai.expect(opts.configPath).to.not.equal('test');
       chai.expect(opts.enumsAsString).to.not.equal(true);
@@ -544,7 +545,7 @@ describe('ConfigClass', () => {
       process.env['default-num'] = '1001';
       process.env['default-num2'] = '501';
       process.env['num2'] = '52';
-      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
       chai.expect(c.__defaults).to.deep.equal({num: '1001', num2: '501'});
@@ -574,7 +575,7 @@ describe('ConfigClass', () => {
       optimist.argv['default-num'] = '100';
       optimist.argv['default-num2'] = '50';
       optimist.argv['num2'] = '52';
-      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
       chai.expect(c.__defaults).to.deep.equal({num: '100', num2: '50'});
@@ -602,7 +603,7 @@ describe('ConfigClass', () => {
       optimist.argv['default-num'] = '100';
       optimist.argv['default-num2'] = '50';
       optimist.argv['num2'] = '52';
-      let c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
       chai.expect(c.__defaults).to.deep.equal({num: 5, num2: 5});

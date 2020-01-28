@@ -7,25 +7,25 @@ export class Loader {
       const keyArray = key.split('-');
       const value = vars[key];
 
-      //recursive settings
-      const setObject = (object: { [key: string]: any }, keyArray: string[], value: any): void => {
-        let key = keyArray.shift();
-        object[key] = object[key] || {};
+      // recursive settings
+      const setObject = (object: { [key: string]: any }, keyArr: string[], val: any): void => {
+        const k = keyArr.shift();
+        object[k] = object[k] || {};
 
-        if (keyArray.length == 0) {
-          //convert to boolean
-          if (value.toLowerCase && value.toLowerCase() === 'false') {
-            value = false;
+        if (keyArr.length === 0) {
+          // convert to boolean
+          if (val.toLowerCase && val.toLowerCase() === 'false') {
+            val = false;
           }
-          if (value.toLowerCase && value.toLowerCase() === 'true') {
-            value = true;
+          if (val.toLowerCase && val.toLowerCase() === 'true') {
+            val = true;
           }
 
-          object[key] = value;
+          object[k] = val;
           return;
         }
 
-        return setObject(object[key], keyArray, value);
+        return setObject(object[k], keyArr, val);
       };
       setObject(cliArgsObj, keyArray, value);
     });
@@ -43,7 +43,7 @@ export class Loader {
         return;
       }
       if (Array.isArray(targetObject[key])) {
-        if (targetObject[key] != sourceObject[key]) {
+        if (targetObject[key] !== sourceObject[key]) {
           targetObject[key] = sourceObject[key];
           changed = true;
         }
@@ -54,7 +54,7 @@ export class Loader {
         return;
       }
 
-      if (targetObject[key] != sourceObject[key]) {
+      if (targetObject[key] !== sourceObject[key]) {
         targetObject[key] = sourceObject[key];
         changed = true;
       }

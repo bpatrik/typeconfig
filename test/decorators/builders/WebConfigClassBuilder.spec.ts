@@ -1,3 +1,4 @@
+/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
 import {ConfigProperty} from '../../../src/decorators/property/ConfigPropoerty';
 import {ConfigClassBuilder} from '../../../src/decorators/builders/ConfigClassBuilder';

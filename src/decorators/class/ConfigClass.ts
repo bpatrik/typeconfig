@@ -1,47 +1,10 @@
 import {ConfigLoader} from '../../ConfigLoader';
 import * as optimist from 'optimist';
-import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
-import {IConfigClassPrivate} from './IConfigClass';
+import {AbstractRootConfigClass} from './base/AbstractRootConfigClass';
+import {ConfigClassOptions, IConfigClassPrivate} from './IConfigClass';
+import * as fs from 'fs';
 import {promises as fsp} from 'fs';
 
-
-export interface ConfigCLIOptions {
-  attachDescription?: boolean;
-  attachDefaults?: boolean;
-  configPath?: boolean;
-  saveIfNotExist?: boolean;
-  rewriteCLIConfig?: boolean;
-  rewriteENVConfig?: boolean;
-  enumsAsString?: boolean;
-  exitOnConfig?: boolean;
-}
-
-export interface ConfigClassOptions extends ConfigClassOptionsBase {
-  attachDescription?: boolean;
-  attachDefaults?: boolean;
-  configPath?: string;
-  saveIfNotExist?: boolean;
-  rewriteCLIConfig?: boolean;
-  rewriteENVConfig?: boolean;
-  enumsAsString?: boolean;
-  disableMan?: boolean;
-  exitOnConfig?: boolean;
-
-  cli?: {
-    prefix?: string,
-    enable?: ConfigCLIOptions,
-    defaults?: {
-      /**
-       * Prefixes the default value overwrites
-       */
-      prefix?: string,
-      /**
-       * Enables overwriting the default values
-       */
-      enabled?: boolean
-    }
-  };
-}
 
 const cliMap = {
   attachDescription: 'attachDesc',
@@ -55,8 +18,7 @@ const cliMap = {
 };
 
 function parseCLIOptions(options: ConfigClassOptions) {
-  console.log(optimist.argv);
-  for (let key in cliMap) {
+  for (const key of Object.keys(cliMap)) {
     const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
     if ((<any>options.cli.enable)[key] === true &&
       typeof optimist.argv[cliSwitch] !== 'undefined') {
@@ -76,31 +38,20 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
   options.cli.defaults.prefix = options.cli.defaults.prefix || 'default';
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class ConfigClass extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate {
+    return class ConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate {
 
 
       constructor(...args: any[]) {
         super(args);
 
-        if (optimist.argv['--help']) {
+        if (optimist.argv['help']) {
           console.log(this.__printMan());
+          process.exit(0);
         }
       }
 
 
-      async loadDefaults(): Promise<any> {
-        if (options.configPath) {
-
-          try {
-            const config: { __defaults?: any } = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
-            if (typeof config.__defaults !== 'undefined') {
-              this.__loadDefaultsJSONObject(config.__defaults);
-              this.__loadJSONObject(config.__defaults);
-            }
-          } catch (e) {
-
-          }
-        }
+      __loadCLIENVDefaults() {
 
         const cliConfig = ConfigLoader.getCLIArgsAsObject();
         if (options.cli.defaults.enabled === true && cliConfig[options.cli.defaults.prefix]) {
@@ -114,8 +65,98 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
       }
 
+      async __loadDefaults(): Promise<any> {
+        if (options.configPath) {
+
+          try {
+            const config: { __defaults?: any } = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
+            if (typeof config.__defaults !== 'undefined') {
+              this.__loadDefaultsJSONObject(config.__defaults);
+              this.__loadJSONObject(config.__defaults);
+            }
+          } catch (e) {
+
+          }
+        }
+        this.__loadCLIENVDefaults();
+      }
+
+      __loadDefaultsSync(): void {
+        if (options.configPath) {
+
+          try {
+            const config: { __defaults?: any } = JSON.parse(fs.readFileSync(options.configPath, 'utf8'));
+            if (typeof config.__defaults !== 'undefined') {
+              this.__loadDefaultsJSONObject(config.__defaults);
+              this.__loadJSONObject(config.__defaults);
+            }
+          } catch (e) {
+
+          }
+        }
+        this.__loadCLIENVDefaults();
+      }
+
+      loadSync(): void {
+        this.__loadDefaultsSync();
+
+        if (options.configPath) {
+
+          try {
+            const config: { __defaults?: any } = JSON.parse(fs.readFileSync(options.configPath, 'utf8'));
+            delete config.__defaults;
+            this.__loadJSONObject(config);
+          } catch (e) {
+
+          }
+        }
+        let shouldSave = false;
+        let cliParsed = false;
+        let envParsed = false;
+
+        const processOptions = (config: { [p: string]: any }) => {
+          // process values only
+          if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
+            delete config[options.cli.defaults.prefix];
+          }
+          return this.__loadJSONObject(config);
+        };
+
+        if (options.rewriteCLIConfig === true) {
+          shouldSave = processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
+          cliParsed = true;
+        }
+        if (options.rewriteENVConfig === true) {
+          shouldSave = processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
+          envParsed = true;
+        }
+
+        let exists = false;
+
+        try {
+          fs.accessSync(options.configPath);
+          exists = true;
+        } catch (e) {
+
+        }
+        if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
+          this.saveSync();
+          if (options.exitOnConfig === true) {
+            process.exit(0);
+          }
+        }
+
+        if (cliParsed === false) {
+          processOptions(ConfigLoader.getCLIArgsAsObject());
+        }
+        if (envParsed === false) {
+          processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+        }
+      }
+
+
       async load(): Promise<any> {
-        await this.loadDefaults();
+        await this.__loadDefaults();
 
         if (options.configPath) {
 
@@ -168,6 +209,12 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
         if (envParsed === false) {
           processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+        }
+      }
+
+      saveSync(): void {
+        if (options.configPath) {
+          fs.writeFileSync(options.configPath, JSON.stringify(this, null, 4));
         }
       }
 
