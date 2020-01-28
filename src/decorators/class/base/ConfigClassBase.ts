@@ -187,7 +187,10 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         return newValue;
       }
       const propState = this.__state[property];
-      const type = typeof _type !== 'undefined' ? _type : propState.type;
+      const type = typeof _type !== 'undefined' ? _type :
+        (propState.typeBuilder ? propState.typeBuilder(newValue, this.__rootConfig) :
+          propState.type);
+
       const strValue = String(newValue);
       let floatValue: number = NaN;
       if (parseFloat(strValue).toString() === strValue) {
@@ -222,7 +225,9 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           }
           if (propState.arrayType !== Array) {
             for (let i = 0; i < newValue.length; ++i) {
-              newValue[i] = this.__validate(property, newValue[i], propState.arrayType ? propState.arrayType : null);
+              const t = propState.arrayTypeBuilder ? propState.arrayTypeBuilder(newValue[i], this.__rootConfig) :
+                (propState.arrayType ? propState.arrayType : null);
+              newValue[i] = this.__validate(property, newValue[i], t);
             }
           }
           return newValue;

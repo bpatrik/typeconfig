@@ -26,8 +26,10 @@ export type propertyTypes =
 
 export interface PropertyOptions<T, C> {
   type?: propertyTypes;
+  typeBuilder?: (value: T, config?: C) => propertyTypes
   onNewValue?: (value: T, config?: C) => void;
   arrayType?: propertyTypes;
+  arrayTypeBuilder?: (value: T, config?: C) => propertyTypes;
   volatile?: boolean;
   description?: string;
   envAlias?: string;
