@@ -21,8 +21,13 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
   enumsAsString?: boolean;
+  attachState?: boolean;
   disableMan?: boolean;
   exitOnConfig?: boolean;
+  /**
+   * If a property is set through cli or env variable, it becomes readonly
+   */
+  disableAutoReadonly?: boolean;
 
   cli?: {
     prefix?: string,

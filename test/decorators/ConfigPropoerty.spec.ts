@@ -4,6 +4,7 @@ import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
+import * as optimist from 'optimist';
 
 const chai: any = require('chai');
 const should = chai.should();
@@ -242,6 +243,8 @@ describe('ConfigProperty', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: null, zero: 0});
       c.num = 10;
       chai.expect(c.toJSON()).to.deep.equal({num: 10, zero: 0});
+      c.num = <any>'apple';
+      chai.expect(c.toJSON()).to.deep.equal({num: NaN, zero: 0});
     });
 
     it('integer', () => {
@@ -630,6 +633,83 @@ describe('ConfigProperty', () => {
     chai.expect(c.toJSON()).to.deep.equal({num: 5});
     chai.expect(c.vNum).to.deep.equal(10);
   });
+
+
+  describe('readonly', () => {
+
+    const cleanUp = () => {
+      delete process.env['num'];
+      delete optimist.argv['num'];
+    };
+
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
+
+    it('should support', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({readonly: true})
+        num: number = 5;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      c.num = 5;
+      chai.expect(c.__state.num.readonly).to.equal(true);
+
+      chai.expect(() => {
+        c.num = 10;
+      }).to.throw(Error, 'readonly');
+    });
+
+    it('env should make readonly', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      process.env['num'] = '20';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      c.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({num: 10});
+      c.loadSync();
+      chai.expect(c.toJSON()).to.deep.equal({num: 20});
+      chai.expect(c.__state.num.readonly).to.equal(true);
+      c.num = 20;
+      chai.expect(() => {
+        c.num = 11;
+      }).to.throw(Error, 'readonly');
+    });
+
+    it('cli should make readonly', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      optimist.argv['num'] = '20';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      c.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({num: 10});
+      c.loadSync();
+      chai.expect(c.toJSON()).to.deep.equal({num: 20});
+      chai.expect(c.__state.num.readonly).to.equal(true);
+      c.num = 20;
+      chai.expect(() => {
+        c.num = 11;
+      }).to.throw(Error, 'readonly');
+    });
+
+
+  });
+
 
   describe('constraint', () => {
 

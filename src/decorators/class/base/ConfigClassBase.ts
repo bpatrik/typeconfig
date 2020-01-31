@@ -16,6 +16,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
     __values: { [key: string]: any };
     __rootConfig: ConfigClassBaseType;
     __propPath = '';
+    __created = false;
 
     constructor(...args: any[]) {
       super(...args);
@@ -32,6 +33,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           this.__defaults[key] = this.__values[key].__defaults;
         }
       }
+      this.__created = true;
     }
 
     get __options(): SubClassOptions {
@@ -51,12 +53,30 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         && typeof value.toJSON === 'function';
     }
 
+    __loadStateJSONObject(sourceObject: { [key: string]: { readonly?: boolean } | any }): void {
+      if (sourceObject === null || typeof sourceObject === 'undefined') {
+        return;
+      }
+      Object.keys(sourceObject).forEach((key) => {
+        if (typeof this.__state[key] === 'undefined') {
+          return;
+        }
+        if (this.__values[key] &&
+          typeof this.__values[key].__loadStateJSONObject !== 'undefined') {
+          this[key].__loadStateJSONObject(sourceObject[key]);
+          return;
+        }
+        if (sourceObject[key].readonly) {
+          this.__state[key].readonly = sourceObject[key].readonly;
+        }
+      });
+    }
 
     __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void {
       Loader.loadObject(this.__defaults, sourceObject);
     }
 
-    __loadJSONObject(sourceObject: { [key: string]: any }): boolean {
+    __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false): boolean {
       let changed = false;
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return false;
@@ -70,27 +90,25 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
             this[key] = sourceObject[key];
             changed = true;
           }
-          return;
-        }
-        if (this.__values[key] &&
+
+        } else if (this.__values[key] &&
           typeof this.__values[key].__loadJSONObject !== 'undefined') {
           changed = this[key].__loadJSONObject(sourceObject[key]) || changed;
-          return;
-        }
 
-        // unknown object
-        if (this.__values[key] &&
+        } else if (this.__values[key] && // unknown object
           this.__state[key].type === Object) {
           this[key] = sourceObject[key];
           changed = true;
-          return;
-        }
 
-        if (this.__values[key] !== sourceObject[key]) {
+        } else if (this.__values[key] !== sourceObject[key]) {
           this[key] = sourceObject[key];
           changed = true;
         }
-        return;
+
+        if (setToReadonly === true && options.disableAutoReadonly !== true) {
+          this.__state[key].readonly = true;
+        }
+
       });
       return changed;
     }
@@ -142,6 +160,11 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       this.__values = this.__values || {};
       if (this.__values[property] === newValue) {
         return;
+      }
+
+      // skip readonly if we are setting the default value
+      if (this.__state[property].readonly === true && this.__created === true) {
+        throw new Error(property + ' is readonly');
       }
       this.__values[property] = newValue;
       if (this.__rootConfig) { // while sub config default value set, the root conf is not available yet.
@@ -290,13 +313,6 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return newValue;
     }
 
-    toStateString(): string {
-      return JSON.stringify(this.toJSON({enumsAsString: false, attachDescription: false}));
-    }
-
-    toStateStringWithDefaults(): string {
-      return JSON.stringify(this.toJSON({enumsAsString: false, attachDescription: false, attachDefaults: true}));
-    }
 
     toJSON(opt?: ToJSONOptions): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
@@ -307,7 +323,34 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         ret['__defaults'] = this.__defaults;
       }
 
+      // Attach __state
+      if (opt.attachState === true) {
+        ret['__state'] = {};
+        const loadState = (from: ConfigClassBaseType, to: any) => {
+          for (const key of Object.keys(from.__state)) {
+            if (typeof this.__state[key] === 'undefined') {
+              continue;
+            }
+            to[key] = {};
+            if (from.__state[key].readonly) {
+              to[key] = {readonly: from.__state[key].readonly};
+            }
+            if (from.__values[key] &&
+              typeof from.__values[key].__state !== 'undefined') {
+              loadState(from.__values[key], to[key]);
+            } else if (from.__defaults[key] &&
+              typeof from.__defaults[key].__state !== 'undefined') {
+              loadState(from.__defaults[key], to[key]);
+            }
+          }
+
+        };
+        loadState(this, ret['__state']);
+      }
+
+
       opt.attachDefaults = false; // do not cascade defaults, root already knows it.
+      opt.attachState = false; // do not cascade defaults, root already knows it.
 
       for (const key of Object.keys(this.__state)) {
         if (this.__state[key].volatile === true ||

@@ -5,17 +5,13 @@ import {SubClassOptions} from '../SubClassOptions';
 export interface ToJSONOptions {
   attachDescription?: boolean;
   attachDefaults?: boolean;
+  attachState?: boolean;
   enumsAsString?: boolean;
 }
 
 export interface IConfigClassBase {
 
   toJSON(opt?: ToJSONOptions): { [key: string]: any };
-
-  toStateString(): string;
-
-  toStateStringWithDefaults(): string;
-
 
 }
 
@@ -28,10 +24,6 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
   __options: SubClassOptions;
 
   toJSON(opt?: ToJSONOptions): { [key: string]: any };
-
-  toStateString(): string;
-
-  toStateStringWithDefaults(): string;
 
   __getENVAliases(): { key: string, alias: string }[];
 
@@ -54,6 +46,8 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
   ___printOption(prefix: string, printENVAlias: boolean, longestName?: number): string;
 
   __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void;
+
+  __loadStateJSONObject(sourceObject: { [key: string]: { readonly?: boolean } }): void;
 
   __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
 }

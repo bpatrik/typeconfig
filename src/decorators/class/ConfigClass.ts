@@ -97,6 +97,14 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         this.__loadCLIENVDefaults();
       }
 
+      __processOptions(config: { [p: string]: any }) {
+        // process values only
+        if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
+          delete config[options.cli.defaults.prefix];
+        }
+        return this.__loadJSONObject(config, true);
+      }
+
       loadSync(): void {
         this.__loadDefaultsSync();
 
@@ -114,20 +122,13 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let cliParsed = false;
         let envParsed = false;
 
-        const processOptions = (config: { [p: string]: any }) => {
-          // process values only
-          if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
-            delete config[options.cli.defaults.prefix];
-          }
-          return this.__loadJSONObject(config);
-        };
 
         if (options.rewriteCLIConfig === true) {
-          shouldSave = processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
+          shouldSave = this.__processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
           cliParsed = true;
         }
         if (options.rewriteENVConfig === true) {
-          shouldSave = processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
+          shouldSave = this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
           envParsed = true;
         }
 
@@ -147,10 +148,10 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
 
         if (cliParsed === false) {
-          processOptions(ConfigLoader.getCLIArgsAsObject());
+          this.__processOptions(ConfigLoader.getCLIArgsAsObject());
         }
         if (envParsed === false) {
-          processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+          this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
       }
 
@@ -172,20 +173,13 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let cliParsed = false;
         let envParsed = false;
 
-        const processOptions = (config: { [p: string]: any }) => {
-          // process values only
-          if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
-            delete config[options.cli.defaults.prefix];
-          }
-          return this.__loadJSONObject(config);
-        };
 
         if (options.rewriteCLIConfig === true) {
-          shouldSave = processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
+          shouldSave = this.__processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
           cliParsed = true;
         }
         if (options.rewriteENVConfig === true) {
-          shouldSave = processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
+          shouldSave = this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
           envParsed = true;
         }
 
@@ -205,10 +199,10 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
 
         if (cliParsed === false) {
-          processOptions(ConfigLoader.getCLIArgsAsObject());
+          this.__processOptions(ConfigLoader.getCLIArgsAsObject());
         }
         if (envParsed === false) {
-          processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+          this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
       }
 

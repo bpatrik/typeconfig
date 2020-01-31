@@ -51,6 +51,7 @@ export interface PropertyOptions<T, C> {
    */
   arrayTypeBuilder?: (value: T, config?: C) => propertyTypes;
   volatile?: boolean;
+  readonly?: boolean;
   description?: string;
   envAlias?: string;
   constraint?: PropertyConstraint<T, any>;
@@ -85,6 +86,7 @@ export interface IPropertyMetadata<T, C> extends PropertyOptions<T, C> {
    */
   arrayTypeBuilder?: (value: T, config?: C) => propertyTypes;
   volatile?: boolean;
+  readonly?: boolean;
   description?: string;
   envAlias?: string;
   constraint?: PropertyConstraint<T, C>;

@@ -46,6 +46,24 @@ describe('WebConfigClass', () => {
 
     });
 
+    it('should load readonly', async () => {
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 10;
+      }
+
+      const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {}}, num: 10});
+      c.load({__state: {num: {readonly: true}}, num: 7});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {readonly: true}}, num: 7});
+
+      chai.expect(() => {
+        c.num = 11;
+      }).to.throw(Error, 'readonly');
+    });
+
     it('should not load irrelevat', async () => {
 
       @WebConfigClass()

@@ -78,6 +78,21 @@ describe('ConfigClass', () => {
     chai.expect(JSON.stringify(c)).to.equal('{"//[num]":"this is a number","num":5,"//[num2]":"this is an other number","num2":5}');
   });
 
+  it('should JSON contain __state ', () => {
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({readonly: true})
+      num: number = 5;
+
+      @ConfigProperty()
+      num2: number = 5;
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {readonly: true}, num2: {}}, num: 5, num2: 5});
+  });
+
   describe('man page', () => {
 
     it('should print default override options', () => {
@@ -227,6 +242,9 @@ describe('ConfigClass', () => {
         @ConfigProperty()
         num: number = 20;
 
+        @ConfigProperty({readonly: true})
+        roNum: number = 1000;
+
       }
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
@@ -234,9 +252,17 @@ describe('ConfigClass', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
       await c.load();
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
-      chai.expect(c2.toJSON()).to.deep.equal({num: 20});
+      chai.expect(c2.toJSON()).to.deep.equal({num: 20, roNum: 1000});
+      chai.expect(() => {
+        c2.roNum = 11;
+      }).to.throw(Error, 'readonly');
       await c2.load();
-      chai.expect(c2.toJSON()).to.deep.equal({num: 5});
+      chai.expect(c2.toJSON()).to.deep.equal({num: 5, roNum: 1000});
+      c2.num = 999;
+      chai.expect(c2.toJSON()).to.deep.equal({num: 999, roNum: 1000});
+      chai.expect(() => {
+        c2.roNum = 11;
+      }).to.throw(Error, 'readonly');
     });
 
     it('should save', async () => {

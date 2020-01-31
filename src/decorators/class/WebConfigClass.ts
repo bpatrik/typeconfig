@@ -13,14 +13,25 @@ export interface WebConfigClassOptions extends ConfigClassOptionsBase {
 export function WebConfigClass(options: WebConfigClassOptions = {}): any {
   return (constructorFunction: new (...args: any[]) => any) => {
     return class WebConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IWebConfigClassPrivate {
-      load(configJson: { __defaults?: any } = <any>{}): void {
+      load(configJson: { __defaults?: any, __state?: { [key: string]: { readonly?: boolean } } } = <any>{}): void {
         if (typeof configJson.__defaults !== 'undefined') {
           this.__loadDefaultsJSONObject(configJson.__defaults);
           delete configJson.__defaults;
         }
+
+        // postpone readonly loading
+        const __state = configJson.__state;
+        delete configJson.__state;
+
         this.__loadJSONObject(configJson);
         if (options.loadQueryOptions) {
           WebConfigLoader.loadUrlParams(this);
+        }
+
+
+        // postponed readonly loading
+        if (typeof __state !== 'undefined') {
+          this.__loadStateJSONObject(__state);
         }
       }
     };
