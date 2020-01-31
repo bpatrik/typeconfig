@@ -6,6 +6,10 @@ export interface ToJSONOptions {
   attachDescription?: boolean;
   attachDefaults?: boolean;
   attachState?: boolean;
+  /**
+   * Forces to attach volatile variables
+   */
+  attachVolatile?: boolean;
   enumsAsString?: boolean;
 }
 

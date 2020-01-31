@@ -92,6 +92,21 @@ describe('ConfigClass', () => {
     const c = ConfigClassBuilder.attachPrivateInterface(new C());
     chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {readonly: true}, num2: {}}, num: 5, num2: 5});
   });
+  it('should JSON contain adds volatile ', () => {
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({volatile: true})
+      num: number = 5;
+
+      @ConfigProperty()
+      num2: number = 50;
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.toJSON({attachVolatile: false})).to.deep.equal({num2: 50});
+    chai.expect(c.toJSON({attachVolatile: true})).to.deep.equal({num: 5, num2: 50});
+  });
 
   describe('man page', () => {
 

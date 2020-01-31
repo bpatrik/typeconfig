@@ -353,7 +353,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       opt.attachState = false; // do not cascade defaults, root already knows it.
 
       for (const key of Object.keys(this.__state)) {
-        if (this.__state[key].volatile === true ||
+        if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
           typeof this.__values[key] === 'undefined') {
           continue;
         }
