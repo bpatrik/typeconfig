@@ -20,7 +20,14 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
     constructor(...args: any[]) {
       super(...args);
-      this.__state = this.__state || {};
+      const tmpState = this.__state || {};
+      this.__state = {};
+      for (const key of Object.keys(tmpState)) {
+        if (typeof tmpState[key] === 'undefined') {
+          continue;
+        }
+        this.__state[key] = {...tmpState[key]};
+      }
       this.__values = this.__values || {};
 
       for (const key of Object.keys(this.__values)) {

@@ -687,6 +687,27 @@ describe('ConfigProperty', () => {
       }).to.throw(Error, 'readonly');
     });
 
+    it('should be per config object', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      process.env['num'] = '20';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c2 = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.__state.num.readonly).to.not.equal(true);
+      c.loadSync();
+      chai.expect(c.__state.num.readonly).to.equal(true);
+      chai.expect(c2.__state.num.readonly).to.not.equal(true);
+      c2.loadSync();
+      chai.expect(c2.__state.num.readonly).to.equal(true);
+      const c3 = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c3.__state.num.readonly).to.not.equal(true);
+    });
+
 
     it('env should make readonly in subconfig', () => {
 
