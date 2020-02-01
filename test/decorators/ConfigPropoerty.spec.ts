@@ -5,6 +5,7 @@ import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import * as optimist from 'optimist';
+import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
 
 const chai: any = require('chai');
 const should = chai.should();
@@ -639,6 +640,7 @@ describe('ConfigProperty', () => {
 
     const cleanUp = () => {
       delete process.env['num'];
+      delete process.env['sub-num'];
       delete optimist.argv['num'];
     };
 
@@ -684,6 +686,41 @@ describe('ConfigProperty', () => {
         c.num = 11;
       }).to.throw(Error, 'readonly');
     });
+
+
+    it('env should make readonly in subconfig', () => {
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: Sub})
+        sub: IConfigClassPrivate & Sub = <any>new Sub();
+      }
+
+      process.env['sub-num'] = '20';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}});
+      c.sub.num = 10;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}});
+      chai.expect(c.__state.sub.readonly).to.not.equal(true);
+      chai.expect(c.sub.__state.num.readonly).to.not.equal(true);
+      c.loadSync();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 20}});
+      chai.expect(c.__state.sub.readonly).to.not.equal(true);
+      chai.expect(c.sub.__state.num.readonly).to.equal(true);
+      chai.expect(c.toJSON({attachState: true}))
+        .to.deep.equal({__state: {sub: {num: {readonly: true}}}, sub: {num: 20}});
+      c.sub.num = 20;
+      chai.expect(() => {
+        c.sub.num = 11;
+      }).to.throw(Error, 'readonly');
+    });
+
 
     it('cli should make readonly', () => {
 

@@ -85,29 +85,31 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         if (typeof this.__state[key] === 'undefined') {
           return;
         }
+        const set = () => {
+          this[key] = sourceObject[key];
+          changed = true;
+          if (setToReadonly === true && options.disableAutoReadonly !== true) {
+            this.__state[key].readonly = true;
+          }
+        };
         if (this.__state[key].type === Array) {
           if (this.__values[key] !== sourceObject[key]) {
-            this[key] = sourceObject[key];
-            changed = true;
+            set();
           }
 
         } else if (this.__values[key] &&
           typeof this.__values[key].__loadJSONObject !== 'undefined') {
-          changed = this[key].__loadJSONObject(sourceObject[key]) || changed;
+          changed = this[key].__loadJSONObject(sourceObject[key], setToReadonly) || changed;
 
         } else if (this.__values[key] && // unknown object
           this.__state[key].type === Object) {
-          this[key] = sourceObject[key];
-          changed = true;
+          set();
 
         } else if (this.__values[key] !== sourceObject[key]) {
           this[key] = sourceObject[key];
-          changed = true;
+          set();
         }
 
-        if (setToReadonly === true && options.disableAutoReadonly !== true) {
-          this.__state[key].readonly = true;
-        }
 
       });
       return changed;
@@ -328,7 +330,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         ret['__state'] = {};
         const loadState = (from: ConfigClassBaseType, to: any) => {
           for (const key of Object.keys(from.__state)) {
-            if (typeof this.__state[key] === 'undefined') {
+            if (typeof from.__state[key] === 'undefined') {
               continue;
             }
             to[key] = {};
