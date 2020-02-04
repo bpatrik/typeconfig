@@ -205,7 +205,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
     __validateAll(exceptionStack?: string[]): void {
       for (const key of Object.keys(this.__state)) {
-        this.__validate(key, this.__state[key].value, this.__state[key].type, exceptionStack);
+        this.__validate(key, this.__state[key].value, this.__state[key], exceptionStack);
 
         if (this.__state[key].value && this.__state[key].value.__validateAll) {
           this.__state[key].value.__validateAll(exceptionStack);
@@ -239,11 +239,12 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       }
     }
 
-    __validate<T>(property: string, newValue: T, _type?: propertyTypes, exceptionStack?: string[]): any {
+    __validate<T>(property: string, newValue: T, _typeState?: { type?: propertyTypes, isEnumType?: boolean, isConfigType?: boolean },
+                  exceptionStack?: string[]): any {
       if (typeof this.__rootConfig === 'undefined') {
         return newValue;
       }
-      newValue = this.__validateType(property, newValue, _type);
+      newValue = this.__validateType(property, newValue, _typeState);
       this.__validateConstrains(property, newValue, exceptionStack);
 
       return newValue;
@@ -280,7 +281,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
      * @private
      */
     __validateType<T>(property: string, newValue: T,
-                      _typeState?: { type: propertyTypes, isEnumType: boolean, isConfigType: boolean }): any {
+                      _typeState?: { type?: propertyTypes, isEnumType?: boolean, isConfigType?: boolean }): any {
       if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
