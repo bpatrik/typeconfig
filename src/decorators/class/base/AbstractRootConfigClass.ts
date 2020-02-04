@@ -5,7 +5,6 @@ import {SubClassOptions} from '../SubClassOptions';
 
 export interface ConfigClassOptionsBase extends SubClassOptions {
   attachDescription?: boolean;
-  attachDefaults?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;

@@ -9,3 +9,5 @@ tslint.json
 tsconfig.json
 .editorconfig
 coverage/
+tmp_test/
+mock*

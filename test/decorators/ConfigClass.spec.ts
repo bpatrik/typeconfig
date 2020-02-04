@@ -49,7 +49,7 @@ describe('ConfigClass', () => {
 
   it('should have defaults', () => {
 
-    @ConfigClass({attachDefaults: true})
+    @ConfigClass({attachState: true})
     class C {
 
       @ConfigProperty()
@@ -57,9 +57,9 @@ describe('ConfigClass', () => {
     }
 
     const c = ConfigClassBuilder.attachPrivateInterface(new C());
-    chai.expect(c.toJSON()).to.deep.equal({num: 5, __defaults: {num: 5}});
+    chai.expect(c.toJSON()).to.deep.equal({num: 5, __state: {num: {default: 5}}});
     c.num = 10;
-    chai.expect(c.toJSON()).to.deep.equal({num: 10, __defaults: {num: 5}});
+    chai.expect(c.toJSON()).to.deep.equal({num: 10, __state: {num: {default: 5}}});
   });
 
   it('should JSON keep description-value order', () => {
@@ -90,7 +90,11 @@ describe('ConfigClass', () => {
     }
 
     const c = ConfigClassBuilder.attachPrivateInterface(new C());
-    chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {readonly: true}, num2: {}}, num: 5, num2: 5});
+    chai.expect(c.toJSON({attachState: true})).to.deep.equal({
+      __state: {num: {readonly: true, default: 5}, num2: {default: 5}},
+      num: 5,
+      num2: 5
+    });
   });
   it('should JSON contain adds volatile ', () => {
 
@@ -179,7 +183,7 @@ describe('ConfigClass', () => {
         attachDescription: true, cli: {
           enable: {
             configPath: true,
-            attachDefaults: true,
+            attachState: true,
             attachDescription: true,
             rewriteCLIConfig: true,
             rewriteENVConfig: true,
@@ -202,7 +206,7 @@ describe('ConfigClass', () => {
         'Meta cli options: \n' +
         '--help                           prints this manual \n' +
         '--config-path                    sets the config file location \n' +
-        '--config-attachDefs              prints the defaults to the config file \n' +
+        '--config-attachState             prints the value state (default, readonly, volatile, etc..) to the config file \n' +
         '--config-attachDesc              prints description to the config file \n' +
         '--config-rewrite-cli             updates the config file with the options from cli switches \n' +
         '--config-rewrite-env             updates the config file with the options from environmental variables \n' +
@@ -422,7 +426,7 @@ describe('ConfigClass', () => {
     const cleanUp = () => {
 
       delete optimist.argv['config-path'];
-      delete optimist.argv['config-attachDefs'];
+      delete optimist.argv['config-attachState'];
       delete optimist.argv['config-attachDesc'];
       delete optimist.argv['config-rewrite-cli'];
       delete optimist.argv['config-rewrite-env'];
@@ -434,12 +438,12 @@ describe('ConfigClass', () => {
     afterEach(cleanUp);
 
 
-    it('should not set', async () => {
+    it('should not set without switch', async () => {
       @ConfigClass({
         cli: {
           enable: {
             configPath: true,
-            attachDefaults: true,
+            attachState: true,
             attachDescription: true,
             rewriteCLIConfig: true,
             rewriteENVConfig: true,
@@ -464,7 +468,7 @@ describe('ConfigClass', () => {
       chai.expect(opts.attachDescription).to.not.equal(true);
       chai.expect(opts.rewriteENVConfig).to.not.equal(true);
       chai.expect(opts.rewriteCLIConfig).to.not.equal(true);
-      chai.expect(opts.attachDefaults).to.not.equal(true);
+      chai.expect(opts.attachState).to.not.equal(true);
       chai.expect(opts.saveIfNotExist).to.not.equal(false);
 
 
@@ -473,7 +477,7 @@ describe('ConfigClass', () => {
     it('should set', async () => {
 
       optimist.argv['config-path'] = 'test';
-      optimist.argv['config-attachDefs'] = true;
+      optimist.argv['config-attachState'] = true;
       optimist.argv['config-attachDesc'] = true;
       optimist.argv['config-rewrite-cli'] = true;
       optimist.argv['config-rewrite-env'] = true;
@@ -485,7 +489,7 @@ describe('ConfigClass', () => {
         cli: {
           enable: {
             configPath: true,
-            attachDefaults: true,
+            attachState: true,
             attachDescription: true,
             rewriteCLIConfig: true,
             rewriteENVConfig: true,
@@ -505,21 +509,22 @@ describe('ConfigClass', () => {
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       const opts: ConfigClassOptions = c.__options;
+
       chai.expect(opts.configPath).to.equal('test');
       chai.expect(opts.enumsAsString).to.equal(true);
       chai.expect(opts.attachDescription).to.equal(true);
       chai.expect(opts.rewriteENVConfig).to.equal(true);
       chai.expect(opts.rewriteCLIConfig).to.equal(true);
-      chai.expect(opts.attachDefaults).to.equal(true);
+      chai.expect(opts.attachState).to.equal(true);
       chai.expect(opts.saveIfNotExist).to.equal(false);
 
     });
 
 
-    it('should not set', async () => {
+    it('should not set when disabled', async () => {
 
       optimist.argv['config-path'] = 'test';
-      optimist.argv['config-attachDefs'] = true;
+      optimist.argv['config-attachState'] = true;
       optimist.argv['config-attachDesc'] = true;
       optimist.argv['config-rewrite-cli'] = true;
       optimist.argv['config-rewrite-env'] = true;
@@ -540,10 +545,9 @@ describe('ConfigClass', () => {
       const opts: ConfigClassOptions = c.__options;
       chai.expect(opts.configPath).to.not.equal('test');
       chai.expect(opts.enumsAsString).to.not.equal(true);
-      chai.expect(opts.attachDescription).to.not.equal(true);
+      chai.expect(opts.attachState).to.not.equal(true);
       chai.expect(opts.rewriteENVConfig).to.not.equal(true);
       chai.expect(opts.rewriteCLIConfig).to.not.equal(true);
-      chai.expect(opts.attachDefaults).to.not.equal(true);
       chai.expect(opts.saveIfNotExist).to.not.equal(false);
 
     });

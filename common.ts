@@ -1,12 +1,7 @@
 export {IPropertyMetadata, PropertyOptions, propertyTypes} from './src/decorators/property/IPropertyState';
 export {IConfigClass} from './src/decorators/class/IConfigClass';
 export {IWebConfigClass} from './src/decorators/class/IWebConfigClass';
-export {WebConfigClassBuilder} from './src/decorators/builders/WebConfigClassBuilder';
-export {ConfigClassBuilder} from './src/decorators/builders/ConfigClassBuilder';
 export {ConfigProperty} from './src/decorators/property/ConfigPropoerty';
 export {ConfigDefaults} from './src/decorators/property/ConfigDefaults';
-export {WebConfigClass} from './src/decorators/class/WebConfigClass';
-export {ConfigClass} from './src/decorators/class/ConfigClass';
+export {ConfigState} from './src/decorators/property/ConfigState';
 export {SubConfigClass} from './src/decorators/class/SubConfigClass';
-export {ConfigLoader} from './src/ConfigLoader';
-export {WebConfigLoader} from './src/WebConfigLoader';

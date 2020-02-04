@@ -7,19 +7,25 @@ export interface PropertyConstraint<T, C> {
 export type Enum = { [k: string]: any } & { [k: number]: string };
 export declare type ObjectType<T> = (new() => T) | Function;
 
-export type propertyTypes =
+export type numberTypes =
   'positiveFloat'
   | 'unsignedInt'
   | 'ratio'
   | 'integer'
-  | typeof Number
-  | typeof Boolean
-  | typeof String
-  | typeof Object
-  | typeof Date
-  | typeof Array
+  | 'float';
+
+export type nonNumberTypes =
+  'boolean'
+  | 'object'
+  | 'string'
+  | 'password'
+  | 'date'
+  | 'array'
   | ObjectType<any>
   | Enum;
+
+
+export type propertyTypes = numberTypes | nonNumberTypes;
 
 
 export interface PropertyOptions<T, C> {
@@ -28,6 +34,9 @@ export interface PropertyOptions<T, C> {
    * It determines the value validation
    */
   type?: propertyTypes;
+
+  min?: number;
+  max?: number;
   /**
    * If both type and typeBuilder is present, typeBuilder will be used
    * @param value
@@ -58,11 +67,18 @@ export interface PropertyOptions<T, C> {
 }
 
 export interface IPropertyMetadata<T, C> extends PropertyOptions<T, C> {
+  value: T;
+  default: T;
+
+  min?: number;
+  max?: number;
   /**
    * Can be manual set, but annotation can also infer.
    * It determines the value validation
    */
   type?: propertyTypes;
+  isEnumType?: boolean;
+  isConfigType?: boolean;
   /**
    * If both type and typeBuilder is present, typeBuilder will be used
    * @param value
@@ -79,6 +95,8 @@ export interface IPropertyMetadata<T, C> extends PropertyOptions<T, C> {
    * If type is Array, this should be set manually.
    */
   arrayType?: propertyTypes;
+  isEnumArrayType?: boolean;
+  isConfigArrayType?: boolean;
   /**
    * If both arrayType and arrayTypeBuilder is present, arrayTypeBuilder will be used
    * @param value
@@ -90,5 +108,4 @@ export interface IPropertyMetadata<T, C> extends PropertyOptions<T, C> {
   description?: string;
   envAlias?: string;
   constraint?: PropertyConstraint<T, C>;
-
 }

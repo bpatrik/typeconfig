@@ -248,6 +248,29 @@ describe('ConfigProperty', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: NaN, zero: 0});
     });
 
+    it('number with limits', () => {
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty({type: 'float', min: 10, max: 20})
+        num: number = 12;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({num: 12});
+      c.num = null;
+      chai.expect(c.toJSON()).to.deep.equal({num: null});
+      c.num = 15.5;
+      chai.expect(c.toJSON()).to.deep.equal({num: 15.5});
+      chai.expect(() => {
+        c.num = 100;
+      }).to.throw(Error, 'less');
+      chai.expect(() => {
+        c.num = 5;
+      }).to.throw(Error, 'greater');
+    });
+
     it('integer', () => {
 
       @ConfigClass()
@@ -451,7 +474,7 @@ describe('ConfigProperty', () => {
       @ConfigClass()
       class C {
 
-        @ConfigProperty({arrayType: String})
+        @ConfigProperty({arrayType: 'string'})
         arr: string[] = ['apple'];
 
         toJSON(): any {
@@ -553,7 +576,7 @@ describe('ConfigProperty', () => {
       @ConfigClass()
       class C {
 
-        @ConfigProperty()
+        @ConfigProperty({arrayType: Sub})
         sub: Sub[] = [];
 
         toJSON(): any {
@@ -735,7 +758,7 @@ describe('ConfigProperty', () => {
       chai.expect(c.__state.sub.readonly).to.not.equal(true);
       chai.expect(c.sub.__state.num.readonly).to.equal(true);
       chai.expect(c.toJSON({attachState: true}))
-        .to.deep.equal({__state: {sub: {num: {readonly: true}}}, sub: {num: 20}});
+        .to.deep.equal({__state: {sub: {num: {readonly: true, default: 5}}}, sub: {num: 20}});
       c.sub.num = 20;
       chai.expect(() => {
         c.sub.num = 11;

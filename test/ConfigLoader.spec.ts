@@ -5,6 +5,11 @@ const should = chai.should();
 
 describe('ConfigLoader', () => {
 
+  const cleanUp = () => {
+    delete process.env['sub-data-a'];
+  };
+  beforeEach(cleanUp);
+  afterEach(cleanUp);
 
   it('Should set from env variables', () => {
     const testObj = {

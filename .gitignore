@@ -7,3 +7,5 @@ TypeConfig.iml
 !karma.conf.js
 node_modules/
 coverage/
+tmp_test/
+mock*

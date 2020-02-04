@@ -8,7 +8,7 @@ import {promises as fsp} from 'fs';
 
 const cliMap = {
   attachDescription: 'attachDesc',
-  attachDefaults: 'attachDefs',
+  attachState: 'attachState',
   configPath: 'path',
   saveIfNotExist: 'save-if-not-exist',
   rewriteCLIConfig: 'rewrite-cli',
@@ -18,6 +18,7 @@ const cliMap = {
 };
 
 function parseCLIOptions(options: ConfigClassOptions) {
+
   for (const key of Object.keys(cliMap)) {
     const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
     if ((<any>options.cli.enable)[key] === true &&
@@ -228,8 +229,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         if (options.cli.enable.configPath === true) {
           ret += ('--' + options.cli.prefix + '-' + cliMap.configPath).padEnd(pad) + ' sets the config file location \n';
         }
-        if (options.cli.enable.attachDefaults === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.attachDefaults).padEnd(pad) + ' prints the defaults to the config file \n';
+        if (options.cli.enable.attachState === true) {
+          ret += ('--' + options.cli.prefix + '-' + cliMap.attachState).padEnd(pad) + ' prints the value state (default, readonly, volatile, etc..) to the config file \n';
         }
         if (options.cli.enable.attachDescription === true) {
           ret += ('--' + options.cli.prefix + '-' + cliMap.attachDescription).padEnd(pad) + ' prints description to the config file \n';

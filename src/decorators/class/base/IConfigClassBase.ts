@@ -4,7 +4,6 @@ import {SubClassOptions} from '../SubClassOptions';
 
 export interface ToJSONOptions {
   attachDescription?: boolean;
-  attachDefaults?: boolean;
   attachState?: boolean;
   /**
    * Forces to attach volatile variables
@@ -22,7 +21,6 @@ export interface IConfigClassBase {
 export interface IConfigClassPrivateBase extends IConfigClassBase {
   __state: { [key: string]: IPropertyMetadata<any, any> };
   __defaults: { [key: string]: any };
-  __values: { [key: string]: any };
   __rootConfig: IConfigClassPrivateBase;
   __propPath: string;
   __options: SubClassOptions;
@@ -51,7 +49,9 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
 
   __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void;
 
-  __loadStateJSONObject(sourceObject: { [key: string]: { readonly?: boolean } }): void;
+  __getNavigatableState(): any;
+
+  __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any> | any }): void;
 
   __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
 }

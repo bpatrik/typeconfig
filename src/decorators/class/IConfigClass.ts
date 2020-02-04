@@ -4,7 +4,7 @@ import {ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
 
 export interface ConfigCLIOptions {
   attachDescription?: boolean;
-  attachDefaults?: boolean;
+  attachState?: boolean;
   configPath?: boolean;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
@@ -15,7 +15,6 @@ export interface ConfigCLIOptions {
 
 export interface ConfigClassOptions extends ConfigClassOptionsBase {
   attachDescription?: boolean;
-  attachDefaults?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;

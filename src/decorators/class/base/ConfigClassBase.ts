@@ -2,7 +2,6 @@ import {IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase';
 import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
 import {ConstraintError} from '../../exceptions/ConstraintError';
 import {Utils} from '../../../Utils';
-import {Loader} from '../../../Loader';
 import {SubClassOptions} from '../SubClassOptions';
 
 
@@ -12,8 +11,6 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
   }
   return class ConfigClassBaseType extends constructorFunction implements IConfigClassPrivateBase {
     __state: { [key: string]: IPropertyMetadata<any, any> };
-    __defaults: { [key: string]: any } = {};
-    __values: { [key: string]: any };
     __rootConfig: ConfigClassBaseType;
     __propPath = '';
     __created = false;
@@ -28,16 +25,15 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
         this.__state[key] = {...tmpState[key]};
       }
-      this.__values = this.__values || {};
 
-      for (const key of Object.keys(this.__values)) {
-        if (typeof this.__values[key] === 'undefined') {
+      for (const key of Object.keys(this.__state)) {
+        if (typeof this.__state[key].value === 'undefined') {
           continue;
         }
-        this.__defaults[key] = this.__values[key];
-        if (this.__values[key] &&
-          typeof this.__values[key].__defaults !== 'undefined') {
-          this.__defaults[key] = this.__values[key].__defaults;
+        this.__state[key].default = this.__state[key].value;
+        if (this.__state[key].value &&
+          typeof this.__state[key].value.__defaults !== 'undefined') {
+          this.__state[key].default = this.__state[key].value.__defaults;
         }
       }
       this.__created = true;
@@ -45,6 +41,18 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
     get __options(): SubClassOptions {
       return options;
+    }
+
+    get __defaults() {
+      const ret: { [key: string]: any } = {};
+
+      for (const key of Object.keys(this.__state)) {
+        if (typeof this.__state[key].default === 'undefined') {
+          continue;
+        }
+        ret[key] = this.__state[key].default;
+      }
+      return ret;
     }
 
     static isConfigClassBaseCtor(ctor: any) {
@@ -60,7 +68,25 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         && typeof value.toJSON === 'function';
     }
 
-    __loadStateJSONObject(sourceObject: { [key: string]: { readonly?: boolean } | any }): void {
+    __getNavigatableState() {
+
+      const ret: { [key: string]: any } = {};
+
+      for (const key of Object.keys(this.__state)) {
+        if (this.__state[key].value && this.__state[key].value.__getNavigatableState) {
+          Object.defineProperty(ret, key, {
+            get: () => this.__state[key].value.__getNavigatableState(),
+            enumerable: true,
+            configurable: true
+          });
+          continue;
+        }
+        ret[key] = this.__state[key];
+      }
+      return ret;
+    }
+
+    __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any> | any }): void {
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return;
       }
@@ -68,20 +94,41 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         if (typeof this.__state[key] === 'undefined') {
           return;
         }
-        if (this.__values[key] &&
-          typeof this.__values[key].__loadStateJSONObject !== 'undefined') {
+        if (this.__state[key].value &&
+          typeof this.__state[key].value.__loadStateJSONObject !== 'undefined') {
           this[key].__loadStateJSONObject(sourceObject[key]);
           return;
         }
         if (sourceObject[key].readonly) {
           this.__state[key].readonly = sourceObject[key].readonly;
         }
+        if (sourceObject[key].default) {
+          this.__state[key].default = sourceObject[key].default;
+        }
+        if (sourceObject[key].volatile) {
+          this.__state[key].volatile = sourceObject[key].volatile;
+        }
       });
     }
 
-    __loadDefaultsJSONObject(sourceObject: { [key: string]: any }): void {
-      Loader.loadObject(this.__defaults, sourceObject);
+    __loadDefaultsJSONObject(sourceObject: { [key: string]: any }) {
+      if (sourceObject === null || typeof sourceObject === 'undefined') {
+        return;
+      }
+      Object.keys(sourceObject).forEach((key) => {
+        if (typeof this.__state[key] === 'undefined' ||
+          typeof sourceObject[key] === 'undefined') {
+          return;
+        }
+        if (this.__state[key].default &&
+          typeof this.__state[key].default.__loadDefaultsJSONObject !== 'undefined') {
+          this[key].__loadDefaultsJSONObject(sourceObject[key]);
+          return;
+        }
+        this.__state[key].default = sourceObject[key];
+      });
     }
+
 
     __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false): boolean {
       let changed = false;
@@ -92,6 +139,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         if (typeof this.__state[key] === 'undefined') {
           return;
         }
+
         const set = () => {
           this[key] = sourceObject[key];
           changed = true;
@@ -99,20 +147,20 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
             this.__state[key].readonly = true;
           }
         };
-        if (this.__state[key].type === Array) {
-          if (this.__values[key] !== sourceObject[key]) {
+
+        if (this.__state[key].type === 'array') {
+          if (this.__state[key].value !== sourceObject[key]) {
             set();
           }
 
-        } else if (this.__values[key] &&
-          typeof this.__values[key].__loadJSONObject !== 'undefined') {
+        } else if (this.__state[key].value &&
+          typeof this.__state[key].value.__loadJSONObject !== 'undefined') {
           changed = this[key].__loadJSONObject(sourceObject[key], setToReadonly) || changed;
 
-        } else if (this.__values[key] && // unknown object
-          this.__state[key].type === Object) {
+        } else if (this.__state[key].type === 'object') {
           set();
 
-        } else if (this.__values[key] !== sourceObject[key]) {
+        } else if (this.__state[key].value !== sourceObject[key]) {
           this[key] = sourceObject[key];
           set();
         }
@@ -132,10 +180,10 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           });
         }
 
-        if (this.__values[key] !== null &&
-          typeof this.__values[key] !== 'undefined' &&
-          typeof this.__values[key].__getENVAliases !== 'undefined') {
-          ret = ret.concat(this.__values[key].__getENVAliases());
+        if (this.__state[key].value !== null &&
+          typeof this.__state[key].value !== 'undefined' &&
+          typeof this.__state[key].value.__getENVAliases !== 'undefined') {
+          ret = ret.concat(this.__state[key].value.__getENVAliases());
         }
       }
       return ret;
@@ -145,29 +193,29 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       this.__rootConfig = rootConf;
       this.__propPath = propertyPath;
       for (const key of Object.keys(this.__state)) {
-        if (this.__values[key] === null ||
-          typeof this.__values[key] === 'undefined' ||
-          typeof this.__values[key].__setParentConfig === 'undefined') {
+        if (this.__state[key].value === null ||
+          typeof this.__state[key].value === 'undefined' ||
+          typeof this.__state[key].value.__setParentConfig === 'undefined') {
           continue;
         }
         const propPath = propertyPath.length > 0 ? (propertyPath + '.' + key) : key;
-        this.__values[key].__setParentConfig(propPath, this.__rootConfig);
+        this.__state[key].value.__setParentConfig(propPath, this.__rootConfig);
       }
     }
 
     __validateAll(exceptionStack?: string[]): void {
       for (const key of Object.keys(this.__state)) {
-        this.__validate(key, this.__values[key], this.__state[key].type, exceptionStack);
-        if (this.__values[key] && this.__values[key].__validateAll) {
-          this.__values[key].__validateAll(exceptionStack);
+        this.__validate(key, this.__state[key].value, this.__state[key].type, exceptionStack);
+
+        if (this.__state[key].value && this.__state[key].value.__validateAll) {
+          this.__state[key].value.__validateAll(exceptionStack);
         }
       }
     }
 
     __setAndValidateFromRoot<T>(property: string, newValue: T): void {
       // during setting default value, this variable is not exist yet
-      this.__values = this.__values || {};
-      if (this.__values[property] === newValue) {
+      if (this.__state[property].value === newValue) {
         return;
       }
 
@@ -175,11 +223,11 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       if (this.__state[property].readonly === true && this.__created === true) {
         throw new Error(property + ' is readonly');
       }
-      this.__values[property] = newValue;
+      this.__state[property].value = newValue;
       if (this.__rootConfig) { // while sub config default value set, the root conf is not available yet.
 
         if (typeof this.__state[property].onNewValue !== 'undefined') {
-          this.__state[property].onNewValue(this.__values[property], this.__rootConfig);
+          this.__state[property].onNewValue(this.__state[property].value, this.__rootConfig);
         }
 
         const exceptionStack: string[] = [];
@@ -228,17 +276,20 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
      * Makes basic casting and conversion
      * @param property
      * @param newValue
-     * @param _type
+     * @param _typeState
      * @private
      */
-    __validateType<T>(property: string, newValue: T, _type?: propertyTypes): any {
+    __validateType<T>(property: string, newValue: T,
+                      _typeState?: { type: propertyTypes, isEnumType: boolean, isConfigType: boolean }): any {
       if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
       const propState = this.__state[property];
-      const type = typeof _type !== 'undefined' ? _type :
+      const type: propertyTypes = typeof _typeState !== 'undefined' ? _typeState.type :
         (propState.typeBuilder ? propState.typeBuilder(newValue, this.__rootConfig) :
           propState.type);
+      const isEnumType = typeof _typeState !== 'undefined' ? _typeState.isEnumType : propState.isEnumType;
+      const isConfigType = typeof _typeState !== 'undefined' ? _typeState.isConfigType : propState.isConfigType;
 
       const strValue = String(newValue);
       let floatValue = NaN;
@@ -250,17 +301,26 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         intValue = parseInt(strValue, 10);
       }
 
+      const checkRange = () => {
+        if (typeof propState.min !== 'undefined' && floatValue < propState.min) {
+          throw new Error(newValue + ' should be greater than ' + propState.min);
+        }
+        if (typeof propState.max !== 'undefined' && floatValue > propState.max) {
+          throw new Error(newValue + ' should be less than ' + propState.max);
+        }
+      };
       switch (type) {
-        case String:
+        case 'string':
           return strValue;
-        case Number:
+        case 'float':
+          checkRange();
           return floatValue;
-        case Date:
+        case 'date':
           if (typeof intValue === 'undefined' && isNaN(Date.parse(<any>newValue))) {
             throw new TypeError(this.__getFulName(property) + ' should be a Date, got:' + newValue);
           }
           return new Date(<any>newValue);
-        case Boolean:
+        case 'boolean':
           if (strValue.toLowerCase() === 'false' || <any>newValue === false) {
             return false;
           }
@@ -268,41 +328,51 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
             return true;
           }
           throw new TypeError(this.__getFulName(property) + ' should be a boolean');
-        case Array:
+        case 'array':
           if (!Array.isArray(newValue)) {
             throw new TypeError(this.__getFulName(property) + ' should be an array');
           }
-          if (propState.arrayType !== Array) {
+          if (propState.arrayType !== 'array') {
+            const tmpNewValue = [];
             for (let i = 0; i < newValue.length; ++i) {
               const t = propState.arrayTypeBuilder ? propState.arrayTypeBuilder(newValue[i], this.__rootConfig) :
                 (propState.arrayType ? propState.arrayType : null);
-              newValue[i] = this.__validate(property, newValue[i], t);
+              tmpNewValue[i] = this.__validate(property, newValue[i], {
+                type: t,
+                isEnumType: propState.isEnumArrayType,
+                isConfigType: propState.isConfigArrayType
+              });
             }
+            return tmpNewValue;
           }
           return newValue;
         case 'integer':
+          checkRange();
           if (intValue !== floatValue) {
             throw new TypeError('Value should be an integer, got: ' + newValue);
           }
           return intValue;
         case 'ratio':
+          checkRange();
           if (floatValue < 0 || floatValue > 1) {
             throw new TypeError('Value should be an ratio, got: ' + newValue);
           }
           return floatValue;
         case 'unsignedInt':
+          checkRange();
           if (intValue !== floatValue || intValue < 0) {
             throw new TypeError('Value should be an unsigned integer, got: ' + newValue);
           }
           return intValue;
 
         case 'positiveFloat':
+          checkRange();
           if (floatValue < 0) {
             throw new TypeError('Value should be an positive float, got: ' + newValue);
           }
           return floatValue;
       }
-      if (Utils.isEnum(type)) {
+      if (isEnumType === true) {
         if (Number.isInteger(intValue) && typeof (<Enum>type)[intValue] !== 'undefined') {
           return intValue;
         }
@@ -312,10 +382,10 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
 
-      if (ConfigClassBaseType.isConfigClassBaseCtor(type) && !ConfigClassBaseType.isConfigClassBase(newValue)) {
+      if (isConfigType === true && !ConfigClassBaseType.isConfigClassBase(newValue)) {
         const o: ConfigClassBaseType = new (<any>type)();
         o.__loadJSONObject(newValue);
-        newValue = <any>o;
+        return o;
       }
 
 
@@ -327,11 +397,6 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
       const ret: { [key: string]: any } = {};
 
-      // Attach defaults
-      if (opt.attachDefaults === true) {
-        ret['__defaults'] = this.__defaults;
-      }
-
       // Attach __state
       if (opt.attachState === true) {
         ret['__state'] = {};
@@ -341,15 +406,20 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
               continue;
             }
             to[key] = {};
-            if (from.__state[key].readonly) {
-              to[key] = {readonly: from.__state[key].readonly};
-            }
-            if (from.__values[key] &&
-              typeof from.__values[key].__state !== 'undefined') {
-              loadState(from.__values[key], to[key]);
-            } else if (from.__defaults[key] &&
-              typeof from.__defaults[key].__state !== 'undefined') {
-              loadState(from.__defaults[key], to[key]);
+            if (from.__state[key].value &&
+              typeof from.__state[key].value.__state !== 'undefined') {
+              loadState(from.__state[key].value, to[key]);
+            } else if (from.__state[key].default &&
+              typeof from.__state[key].default.__state !== 'undefined') {
+              loadState(from.__state[key].default, to[key]);
+            } else {
+              const {
+                value, type, arrayType,
+                typeBuilder, arrayTypeBuilder, onNewValue,
+                isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
+                constraint, envAlias, description, ...noValue
+              } = from.__state[key];
+              to[key] = noValue;
             }
           }
 
@@ -358,33 +428,27 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       }
 
 
-      opt.attachDefaults = false; // do not cascade defaults, root already knows it.
       opt.attachState = false; // do not cascade defaults, root already knows it.
 
       for (const key of Object.keys(this.__state)) {
         if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
-          typeof this.__values[key] === 'undefined') {
+          typeof this.__state[key].value === 'undefined') {
           continue;
         }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
           ret['//[' + key + ']'] = this.__state[key].description;
         }
 
-        const isConfigType = (value: any): boolean => {
-          return value &&
-            typeof value.toJSON !== 'undefined' &&
-            typeof value.__defaults !== 'undefined';
-        };
 
         // if ConfigClass type?
-        if (isConfigType(this.__values[key])) {
-          ret[key] = this.__values[key].toJSON(opt);
+        if (this.__state[key].isConfigType === true && this.__state[key].value) {
+          ret[key] = this.__state[key].value.toJSON(opt);
           continue;
         }
 
-        if (Array.isArray(this.__values[key])) {
-          ret[key] = this.__values[key].map((v: any) => {
-            if (isConfigType(v)) {
+        if (Array.isArray(this.__state[key].value)) {
+          ret[key] = this.__state[key].value.map((v: any) => {
+            if (this.__state[key].isConfigArrayType === true) {
               return v.toJSON(opt);
             }
             return v;
@@ -393,9 +457,9 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
 
         if (opt.enumsAsString === true && Utils.isEnum(this.__state[key].type)) {
-          ret[key] = (<any>this.__state[key].type)[this.__values[key]];
+          ret[key] = (<any>this.__state[key].type)[this.__state[key].value];
         } else {
-          ret[key] = this.__values[key];
+          ret[key] = this.__state[key].value;
         }
       }
       return ret;
@@ -411,7 +475,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
       for (const key of Object.keys(this.__state)) {
         const state = this.__state[key];
-        const value = this.__values[key];
+        const value = this.__state[key].value;
         if (state.volatile === true) {
           continue;
         }
@@ -437,7 +501,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
       for (const key of Object.keys(this.__state)) {
         const state = this.__state[key];
-        const value = this.__values[key];
+        const value = this.__state[key].value;
         if (state.volatile === true) {
           continue;
         }

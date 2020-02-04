@@ -38,11 +38,11 @@ describe('WebConfigClass', () => {
       }
 
       const c = WebConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {num: 10}, num: 10});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {default: 10}}, num: 10});
       c.load({num: 7});
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {num: 10}, num: 7});
-      c.load({__defaults: {num: 15}, num: 7});
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {num: 15}, num: 7});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {default: 10}}, num: 7});
+      c.load({__state: {num: {default: 15}}, num: 7});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {default: 15}}, num: 7});
 
     });
 
@@ -55,9 +55,9 @@ describe('WebConfigClass', () => {
       }
 
       const c = WebConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {}}, num: 10});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {default: 10}}, num: 10});
       c.load({__state: {num: {readonly: true}}, num: 7});
-      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {readonly: true}}, num: 7});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {num: {default: 10, readonly: true}}, num: 7});
 
       chai.expect(() => {
         c.num = 11;
@@ -94,11 +94,11 @@ describe('WebConfigClass', () => {
       }
 
       const c = WebConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {sub: {num: 5}}, sub: {num: 5}});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 5}}}, sub: {num: 5}});
       c.load({sub: {num: 99}});
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {sub: {num: 5}}, sub: {num: 99}});
-      c.load({__defaults: {sub: {num: 77}}, sub: {num: 66}});
-      chai.expect(c.toJSON({attachDefaults: true})).to.deep.equal({__defaults: {sub: {num: 77}}, sub: {num: 66}});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 5}}}, sub: {num: 99}});
+      c.load({__state: {sub: {num: {default: 77}}}, sub: {num: 66}});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 77}}}, sub: {num: 66}});
 
     });
   });
