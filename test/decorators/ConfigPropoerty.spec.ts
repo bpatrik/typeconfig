@@ -728,6 +728,24 @@ describe('ConfigProperty', () => {
       }).to.throw(Error, 'readonly');
     });
 
+    it('should support soft readonly', () => {
+
+      @ConfigClass({softReadonly: true})
+      class C {
+        @ConfigProperty({readonly: true})
+        num: number = 5;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({num: 5});
+      c.num = 5;
+      chai.expect(c.__state.num.readonly).to.equal(true);
+
+      chai.expect(() => {
+        c.num = 10;
+      }).to.not.throw(Error, 'readonly');
+    });
+
     it('env should make readonly', () => {
 
       @ConfigClass()

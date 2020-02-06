@@ -220,7 +220,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       }
 
       // skip readonly if we are setting the default value
-      if (this.__state[property].readonly === true && this.__created === true) {
+      if (this.__state[property].readonly === true && this.__created === true && options.softReadonly !== true) {
         throw new Error(property + ' is readonly');
       }
       this.__state[property].value = newValue;

@@ -8,6 +8,10 @@ export interface WebConfigClassOptions extends ConfigClassOptionsBase {
   attachState?: boolean;
   enumsAsString?: boolean;
   loadQueryOptions?: boolean; // parses the query string and sets the to the config
+  /**
+   * tracks readonly property, but do not uses it for validation
+   */
+  softReadonly?: boolean;
 }
 
 export function WebConfigClass(options: WebConfigClassOptions = {}): any {
