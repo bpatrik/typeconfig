@@ -1,6 +1,9 @@
 /src/**/*.ts
 !/src/**/*.d.ts
 index.ts
+common.ts
+node.ts
+web.ts
 .idea/
 TypeConfig.iml
 example/

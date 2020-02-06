@@ -198,7 +198,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           typeof this.__state[key].value.__setParentConfig === 'undefined') {
           continue;
         }
-        const propPath = propertyPath.length > 0 ? (propertyPath + '.' + key) : key;
+        const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + key) : key;
         this.__state[key].value.__setParentConfig(propPath, this.__rootConfig);
       }
     }
@@ -239,7 +239,9 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       }
     }
 
-    __validate<T>(property: string, newValue: T, _typeState?: { type?: propertyTypes, isEnumType?: boolean, isConfigType?: boolean },
+    __validate<T>(property: string, newValue: T, _typeState?: {
+                    type?: propertyTypes, isEnumType?: boolean, isConfigType?: boolean
+                  },
                   exceptionStack?: string[]): any {
       if (typeof this.__rootConfig === 'undefined') {
         return newValue;
@@ -281,7 +283,10 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
      * @private
      */
     __validateType<T>(property: string, newValue: T,
-                      _typeState?: { type?: propertyTypes, isEnumType?: boolean, isConfigType?: boolean }): any {
+                      _typeState?: {
+                        type?: propertyTypes,
+                        isEnumType?: boolean, isConfigType?: boolean
+                      }): any {
       if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
@@ -383,8 +388,16 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
 
+      if (isConfigType === true && propState.value &&
+        typeof propState.value.__loadJSONObject !== 'undefined') {
+        propState.value.__loadJSONObject(newValue);
+        return propState.value;
+      }
+
       if (isConfigType === true && !ConfigClassBaseType.isConfigClassBase(newValue)) {
         const o: ConfigClassBaseType = new (<any>type)();
+        const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
+        o.__setParentConfig(propPath, this.__rootConfig);
         o.__loadJSONObject(newValue);
         return o;
       }

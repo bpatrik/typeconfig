@@ -596,6 +596,7 @@ describe('ConfigProperty', () => {
       chai.expect(c.toJSON()).to.deep.equal({sub: []});
 
     });
+
     it('config-array', () => {
       @SubConfigClass()
       class Sub {
@@ -633,6 +634,45 @@ describe('ConfigProperty', () => {
       chai.expect(c.sub[0].toJSON()).to.deep.equal({num: 10});
       c.sub = [];
       chai.expect(c.toJSON()).to.deep.equal({sub: []});
+
+    });
+    it('sub config-array', () => {
+      @SubConfigClass()
+      class SubSub {
+
+
+        @ConfigProperty()
+        num: number;
+
+        constructor(num?: number) {
+          this.num = num;
+        }
+
+      }
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty({arrayType: SubSub})
+        subArr: (IConfigClassPrivate & SubSub)[] = <any>[new SubSub(2), new SubSub(3)];
+      }
+
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: Sub})
+        sub: (IConfigClassPrivate & Sub) = <any>new Sub();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {subArr: [{num: 2}, {num: 3}]}});
+      c.sub.subArr = <any>[new SubSub(20)];
+      chai.expect(c.toJSON()).to.deep.equal({sub: {subArr: [{num: 20}]}});
+      c.sub = <any>{subArr: [{num: 22}, {num: 33}]};
+      chai.expect(c.toJSON()).to.deep.equal({sub: {subArr: [{num: 22}, {num: 33}]}});
+      c.sub.subArr[0].num = 10;
+      chai.expect(c.sub.subArr[0].toJSON()).to.deep.equal({num: 10});
+      c.sub.subArr = [];
+      chai.expect(c.toJSON()).to.deep.equal({sub: {subArr: []}});
 
     });
 
@@ -756,6 +796,8 @@ describe('ConfigProperty', () => {
       c.loadSync();
       chai.expect(c.toJSON()).to.deep.equal({sub: {num: 20}});
       chai.expect(c.__state.sub.readonly).to.not.equal(true);
+      chai.expect(c.sub.__state.num.readonly).to.equal(true);
+      c.sub = <any>{num: 20};
       chai.expect(c.sub.__state.num.readonly).to.equal(true);
       chai.expect(c.toJSON({attachState: true}))
         .to.deep.equal({__state: {sub: {num: {readonly: true, default: 5}}}, sub: {num: 20}});
