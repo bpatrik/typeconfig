@@ -52,6 +52,11 @@ export function ConfigProperty<T, C>(options: PropertyOptions<T, C> = {}) {
     if (isConfigArrayType) {
       state[property].isConfigArrayType = isConfigArrayType;
     }
+
+
+    if (type === 'unsignedInt' || type === 'positiveFloat') {
+      state[property].min = Math.max(state[property].min || 0, 0);
+    }
     target.__state = state;
 
     return {

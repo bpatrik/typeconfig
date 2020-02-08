@@ -181,7 +181,7 @@ describe('ConfigProperty', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
       chai.expect(() => {
         c.num = -1;
-      }).to.throw(TypeError, 'unsigned');
+      }).to.throw(Error, 'greater than 0');
       chai.expect(() => {
         c.num = 100.2;
       }).to.throw(TypeError, 'unsigned');
@@ -220,7 +220,7 @@ describe('ConfigProperty', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: 0.3});
       chai.expect(() => {
         c.num = -1;
-      }).to.throw(TypeError, 'positive');
+      }).to.throw(Error, 'greater than 0');
     });
 
     it('number', () => {
