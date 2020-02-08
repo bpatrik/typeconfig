@@ -562,6 +562,8 @@ describe('ConfigClass', () => {
       delete process.env['default-num'];
       delete optimist.argv['default-num2'];
       delete optimist.argv['num2'];
+      delete process.env['default-sub-num'];
+      delete process.env['num'];
       delete process.env['default-num2'];
       delete process.env['num2'];
     };
@@ -597,6 +599,51 @@ describe('ConfigClass', () => {
       chai.expect(c.__defaults).to.deep.equal({num: '1001', num2: '501'});
       chai.expect(c.num).to.equal(1001);
       chai.expect(c.num2).to.equal(52);
+    });
+    it('should set sub-config through env', async () => {
+
+      @SubConfigClass()
+      class Sub {
+
+        @ConfigProperty()
+        num: number = 5;
+
+
+      }
+
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        }
+      })
+      class C {
+
+        @ConfigProperty()
+        num: number = 99;
+
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+
+        @ConfigProperty({type: Sub})
+        sub2: Sub = new Sub();
+
+      }
+
+      process.env['default-sub-num'] = <any>1001;
+      process.env['num'] = '995';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5}, sub2: {num: 5}});
+      await c.load();
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(
+        {
+          __state: {num: {default: 99, readonly: true}, sub: {num: {default: 1001}}, sub2: {num: {default: 5}}},
+          num: 995, sub: {num: 1001}, sub2: {num: 5}
+        });
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 1001}, sub2: {num: 5}});
+      chai.expect(c.sub.num).to.equal(1001);
+      chai.expect(c.num).to.equal(995);
     });
 
 

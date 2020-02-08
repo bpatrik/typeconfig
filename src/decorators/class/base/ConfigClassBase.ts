@@ -3,6 +3,7 @@ import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertySt
 import {ConstraintError} from '../../exceptions/ConstraintError';
 import {Utils} from '../../../Utils';
 import {SubClassOptions} from '../SubClassOptions';
+import {Loader} from '../../../Loader';
 
 
 export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions) {
@@ -120,9 +121,18 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
           typeof sourceObject[key] === 'undefined') {
           return;
         }
-        if (this.__state[key].default &&
-          typeof this.__state[key].default.__loadDefaultsJSONObject !== 'undefined') {
-          this[key].__loadDefaultsJSONObject(sourceObject[key]);
+
+
+        if (this.__state[key].isConfigType) {
+          if (this.__state[key].default &&
+            typeof this.__state[key].default.__loadDefaultsJSONObject !== 'undefined') {
+            this.__state[key].default.__loadDefaultsJSONObject(sourceObject[key]);
+          }
+          if (typeof this.__state[key].value !== 'undefined') {
+            this[key].__loadDefaultsJSONObject(sourceObject[key]);
+          }
+
+          Loader.loadObject(this.__state[key].default, sourceObject[key]);
           return;
         }
         this.__state[key].default = sourceObject[key];
