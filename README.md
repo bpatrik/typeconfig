@@ -1,4 +1,5 @@
 # typeconfig
+[![npm version](https://badge.fury.io/js/typeconfig.svg)](https://badge.fury.io/js/typeconfig)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/bpatrik/typeconfig.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/bpatrik/typeconfig/context:javascript)
 [![Build Status](https://travis-ci.org/bpatrik/typeconfig.svg?branch=master)](https://travis-ci.org/bpatrik/typeconfig)
 [![Coverage Status](https://coveralls.io/repos/github/bpatrik/typeconfig/badge.svg?branch=master)](https://coveralls.io/github/bpatrik/typeconfig?branch=master)
