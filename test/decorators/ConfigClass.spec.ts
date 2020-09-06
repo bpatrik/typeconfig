@@ -566,6 +566,7 @@ describe('ConfigClass', () => {
       delete process.env['num'];
       delete process.env['default-num2'];
       delete process.env['num2'];
+      delete process.env['default-sub-subsub-myNum'];
     };
 
     beforeEach(cleanUp);
@@ -643,6 +644,61 @@ describe('ConfigClass', () => {
         });
       chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 1001}, sub2: {num: 5}});
       chai.expect(c.sub.num).to.equal(1001);
+      chai.expect(c.num).to.equal(995);
+    });
+
+    it('should set subsub-config through env', async () => {
+
+      @SubConfigClass()
+      class SubSub {
+        @ConfigProperty()
+        myNum: number = 5;
+      }
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        num: number = 5;
+        @ConfigProperty({type: SubSub})
+        subsub: SubSub = new SubSub();
+      }
+
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        }
+      })
+      class C {
+
+        @ConfigProperty()
+        num: number = 99;
+
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+
+        @ConfigProperty({type: Sub})
+        sub2: Sub = new Sub();
+
+      }
+
+      process.env['default-sub-subsub-myNum'] = <any>1001;
+      process.env['num'] = '995';
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5, subsub: {myNum: 5}}, sub2: {num: 5, subsub: {myNum: 5}}});
+      await c.load();
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(
+        {
+          __state: {
+            num: {default: 99, readonly: true},
+            sub: {num: {default: 5}, subsub: {myNum: {default: 1001}}},
+            sub2: {num: {default: 5}, subsub: {myNum: {default: 5}}}
+          },
+          num: 995, sub: {num: 5, subsub: {myNum: 1001}}, sub2: {num: 5, subsub: {myNum: 5}}
+        });
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5, subsub: {myNum: 1001}}, sub2: {num: 5, subsub: {myNum: 5}}});
+      chai.expect(c.sub.subsub.myNum).to.equal(1001);
       chai.expect(c.num).to.equal(995);
     });
 

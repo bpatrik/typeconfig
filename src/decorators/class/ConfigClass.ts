@@ -5,6 +5,7 @@ import {ConfigClassOptions, IConfigClassPrivate} from './IConfigClass';
 import * as fs from 'fs';
 import {promises as fsp} from 'fs';
 
+const debugMode = process.env.NODE_ENV === 'debug';
 
 const cliMap = {
   attachDescription: 'attachDesc',
@@ -76,7 +77,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
               this.__loadJSONObject(config.__defaults);
             }
           } catch (e) {
-
+            if (debugMode === true) {
+              console.error(e);
+            }
           }
         }
         this.__loadCLIENVDefaults();
@@ -92,7 +95,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
               this.__loadJSONObject(config.__defaults);
             }
           } catch (e) {
-
+            if (debugMode === true) {
+              console.error(e);
+            }
           }
         }
         this.__loadCLIENVDefaults();
@@ -107,6 +112,10 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
       }
 
       loadSync(): void {
+
+        if (debugMode === true && options.configPath) {
+          console.log('Loading config. Path: ' + options.configPath);
+        }
         this.__loadDefaultsSync();
 
         if (options.configPath) {
@@ -116,7 +125,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
-
+            if (debugMode === true) {
+              console.error(e);
+            }
           }
         }
         let shouldSave = false;
@@ -139,7 +150,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           fs.accessSync(options.configPath);
           exists = true;
         } catch (e) {
-
+          if (debugMode === true) {
+            console.error(e);
+          }
         }
         if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
           this.saveSync();
@@ -167,7 +180,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
-
+            if (debugMode === true) {
+              console.error(e);
+            }
           }
         }
         let shouldSave = false;
@@ -190,7 +205,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           await fsp.access(options.configPath);
           exists = true;
         } catch (e) {
-
+          if (debugMode === true) {
+            console.error(e);
+          }
         }
         if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
           await this.save();
