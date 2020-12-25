@@ -54,13 +54,25 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
 
 
       __loadCLIENVDefaults() {
-
         const cliConfig = ConfigLoader.getCLIArgsAsObject();
+        const envConfig = ConfigLoader.getENVArgsAsObject(this.__getENVAliases());
+        if (debugMode === true) {
+          console.log('[Typeconfig] Loading defaults, def prefix: ' + options.cli.defaults.prefix);
+          if (cliConfig[options.cli.defaults.prefix]) {
+            console.log('[Typeconfig] from cli: ' + JSON.stringify(cliConfig[options.cli.defaults.prefix], null, '\t'));
+          } else {
+            console.log('[Typeconfig] no default cli found among these: ' + JSON.stringify(cliConfig, null, '\t'));
+          }
+          if (envConfig[options.cli.defaults.prefix]) {
+            console.log('[Typeconfig] from env: ' + JSON.stringify(envConfig[options.cli.defaults.prefix], null, '\t'));
+          } else {
+            console.log('[Typeconfig] no default env found among these: ' + JSON.stringify(envConfig, null, '\t'));
+          }
+        }
         if (options.cli.defaults.enabled === true && cliConfig[options.cli.defaults.prefix]) {
           this.__loadDefaultsJSONObject(cliConfig[options.cli.defaults.prefix]);
           this.__loadJSONObject(cliConfig[options.cli.defaults.prefix]);
         }
-        const envConfig = ConfigLoader.getENVArgsAsObject(this.__getENVAliases());
         if (options.cli.defaults.enabled === true && envConfig[options.cli.defaults.prefix]) {
           this.__loadDefaultsJSONObject(envConfig[options.cli.defaults.prefix]);
           this.__loadJSONObject(envConfig[options.cli.defaults.prefix]);
@@ -72,12 +84,15 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
 
           try {
             const config: { __defaults?: any } = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
+            if (debugMode === true) {
+              console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
+            }
             if (typeof config.__defaults !== 'undefined') {
               this.__loadDefaultsJSONObject(config.__defaults);
               this.__loadJSONObject(config.__defaults);
             }
           } catch (e) {
-            if (debugMode === true) {
+            if (debugMode === true || e instanceof SyntaxError) {
               console.error(e);
             }
           }
@@ -90,12 +105,16 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
 
           try {
             const config: { __defaults?: any } = JSON.parse(fs.readFileSync(options.configPath, 'utf8'));
+            if (debugMode === true) {
+              console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
+            }
             if (typeof config.__defaults !== 'undefined') {
               this.__loadDefaultsJSONObject(config.__defaults);
               this.__loadJSONObject(config.__defaults);
             }
           } catch (e) {
-            if (debugMode === true) {
+            if (debugMode === true || e instanceof SyntaxError)  {
+              console.log('[Typeconfig] cannot read defaults from file');
               console.error(e);
             }
           }
@@ -104,9 +123,13 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
       }
 
       __processOptions(config: { [p: string]: any }) {
+
         // process values only
         if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
           delete config[options.cli.defaults.prefix];
+        }
+        if (debugMode === true) {
+          console.log('[Typeconfig] Processing cli and ENV inputs: ' + JSON.stringify(config, null, '\t'));
         }
         return this.__loadJSONObject(config, true);
       }
@@ -114,7 +137,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
       loadSync(): void {
 
         if (debugMode === true && options.configPath) {
-          console.log('Loading config. Path: ' + options.configPath);
+          console.log('[Typeconfig] Loading config. Path: ' + options.configPath);
         }
         this.__loadDefaultsSync();
 
@@ -125,7 +148,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
-            if (debugMode === true) {
+            if (debugMode === true || e instanceof SyntaxError) {
+              console.log('[Typeconfig] cannot read config from file');
               console.error(e);
             }
           }
@@ -151,6 +175,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           exists = true;
         } catch (e) {
           if (debugMode === true) {
+            console.log('[Typeconfig] config file does not exists yet. This can be normal');
             console.error(e);
           }
         }
@@ -180,7 +205,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
-            if (debugMode === true) {
+            if (debugMode === true || e instanceof SyntaxError) {
+              console.log('[Typeconfig] cannot config from file');
               console.error(e);
             }
           }
@@ -206,6 +232,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
           exists = true;
         } catch (e) {
           if (debugMode === true) {
+            console.log('[Typeconfig] config file does not exists yet. This can be normal');
             console.error(e);
           }
         }
