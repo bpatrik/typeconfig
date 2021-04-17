@@ -469,30 +469,53 @@ describe('ConfigProperty', () => {
         c.var = [0.1];
       }).to.throw(TypeError, 'integer');
     });
+    describe('string-array', () => {
 
-    it('string-array', () => {
-      @ConfigClass()
-      class C {
+      afterEach(async () => {
+        delete optimist.argv['num'];
+      });
 
-        @ConfigProperty({arrayType: 'string'})
-        arr: string[] = ['apple'];
+      it('set value from cli', async () => {
+        @ConfigClass()
+        class C {
 
-        toJSON(): any {
+          @ConfigProperty({arrayType: 'string'})
+          arr: string[] = ['plum'];
+
+          toJSON(): any {
+          }
         }
-      }
 
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(c.toJSON()).to.deep.equal({arr: ['apple']});
-      c.arr = ['pear', 'peach'];
-      chai.expect(c.toJSON()).to.deep.equal({arr: ['pear', 'peach']});
-      c.arr = null;
-      chai.expect(c.toJSON()).to.deep.equal({arr: null});
-      c.arr = ['apple', <any>4, <any>7, null];
-      chai.expect(c.toJSON()).to.deep.equal({arr: ['apple', '4', '7', null]});
+        optimist.argv['arr'] = '["pear", "peach"]';
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        chai.expect(c.toJSON()).to.deep.equal({arr: ['pear', 'peach']});
+      });
 
-      chai.expect(() => {
-        c.arr = <any>'yellow';
-      }).to.throw(TypeError, 'should be an array');
+      it('set value', () => {
+        @ConfigClass()
+        class C {
+
+          @ConfigProperty({arrayType: 'string'})
+          arr: string[] = ['apple'];
+
+          toJSON(): any {
+          }
+        }
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        chai.expect(c.toJSON()).to.deep.equal({arr: ['apple']});
+        c.arr = ['pear', 'peach'];
+        chai.expect(c.toJSON()).to.deep.equal({arr: ['pear', 'peach']});
+        c.arr = null;
+        chai.expect(c.toJSON()).to.deep.equal({arr: null});
+        c.arr = ['apple', <any>4, <any>7, null];
+        chai.expect(c.toJSON()).to.deep.equal({arr: ['apple', '4', '7', null]});
+
+        chai.expect(() => {
+          c.arr = <any>'yellow';
+        }).to.throw(TypeError, 'should be an array');
+      });
     });
 
     it('int-array', () => {

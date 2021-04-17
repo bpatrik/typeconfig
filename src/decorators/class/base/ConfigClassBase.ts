@@ -160,6 +160,12 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
         if (this.__state[key].type === 'array') {
           if (this.__state[key].value !== sourceObject[key]) {
+            try {
+              if (typeof sourceObject[key] === 'string' && Array.isArray(JSON.parse(sourceObject[key]))) {
+                sourceObject[key] = JSON.parse(sourceObject[key]);
+              }
+            } catch (e) {
+            }
             set();
           }
 
