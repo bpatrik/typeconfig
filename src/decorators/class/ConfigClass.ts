@@ -1,5 +1,5 @@
 import {ConfigLoader} from '../../ConfigLoader';
-import * as optimist from 'optimist';
+import * as minimist from 'minimist';
 import {AbstractRootConfigClass} from './base/AbstractRootConfigClass';
 import {ConfigClassOptions, IConfigClassPrivate} from './IConfigClass';
 import * as fs from 'fs';
@@ -23,8 +23,10 @@ function parseCLIOptions(options: ConfigClassOptions) {
   for (const key of Object.keys(cliMap)) {
     const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
     if ((<any>options.cli.enable)[key] === true &&
-      typeof optimist.argv[cliSwitch] !== 'undefined') {
-      (<any>options)[key] = optimist.argv[cliSwitch];
+      typeof minimist(process.argv)[cliSwitch] !== 'undefined') {
+      (<any>options)[key] = minimist(process.argv)[cliSwitch] === 'true' ? true :
+        (minimist(process.argv)[cliSwitch] === 'false' ? false :
+          minimist(process.argv)[cliSwitch]);
     }
   }
 
@@ -46,7 +48,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
       constructor(...args: any[]) {
         super(args);
 
-        if (optimist.argv['help']) {
+        if (minimist(process.argv)['help']) {
           console.log(this.__printMan());
           process.exit(0);
         }
@@ -113,7 +115,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
               this.__loadJSONObject(config.__defaults);
             }
           } catch (e) {
-            if (debugMode === true || e instanceof SyntaxError)  {
+            if (debugMode === true || e instanceof SyntaxError) {
               console.log('[Typeconfig] cannot read defaults from file');
               console.error(e);
             }

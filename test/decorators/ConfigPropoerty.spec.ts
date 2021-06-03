@@ -4,7 +4,6 @@ import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
-import * as optimist from 'optimist';
 import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
 
 const chai: any = require('chai');
@@ -472,7 +471,7 @@ describe('ConfigProperty', () => {
     describe('string-array', () => {
 
       afterEach(async () => {
-        delete optimist.argv['num'];
+        process.argv = process.argv.filter(s => !s.startsWith('--num') && !s.startsWith('--arr'));
       });
 
       it('set value from cli', async () => {
@@ -486,7 +485,7 @@ describe('ConfigProperty', () => {
           }
         }
 
-        optimist.argv['arr'] = '["pear", "peach"]';
+        process.argv.push('--arr=["pear", "peach"]');
         const c = ConfigClassBuilder.attachPrivateInterface(new C());
         await c.load();
         chai.expect(c.toJSON()).to.deep.equal({arr: ['pear', 'peach']});
@@ -727,7 +726,7 @@ describe('ConfigProperty', () => {
     const cleanUp = () => {
       delete process.env['num'];
       delete process.env['sub-num'];
-      delete optimist.argv['num'];
+      process.argv = process.argv.filter(s => !s.startsWith('--num') && !s.startsWith('--arr'));
     };
 
     beforeEach(cleanUp);
@@ -857,7 +856,7 @@ describe('ConfigProperty', () => {
         num: number = 5;
       }
 
-      optimist.argv['num'] = '20';
+      process.argv.push('--num=20');
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
       c.num = 10;

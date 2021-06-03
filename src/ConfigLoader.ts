@@ -1,4 +1,4 @@
-import * as optimist from 'optimist';
+import * as minimist from 'minimist';
 import {Loader} from './Loader';
 import {promises as fsp} from 'fs';
 
@@ -42,7 +42,7 @@ export class ConfigLoader {
   }
 
   public static getCLIArgsAsObject(): { [key: string]: any } {
-    const argv = optimist.argv;
+    const argv = minimist(process.argv.slice(2));
     delete (argv._);
     delete (argv.$0);
 

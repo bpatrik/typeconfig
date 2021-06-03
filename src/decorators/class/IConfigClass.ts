@@ -54,8 +54,14 @@ export interface IConfigClassPrivate extends IConfigClassPrivateBase, IConfigCla
 
 
 export interface IConfigClass extends IConfigClassBase {
+  /**
+   * Loads the config from file, cli and ENV synchronously. Does not reinit the object from class
+   */
   loadSync(): void;
 
+  /**
+   * Loads the config from file, cli and ENV asynchronously. Does not reinit the object from class
+   */
   load(): Promise<any>;
 
   save(): Promise<any>;

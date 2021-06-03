@@ -4,7 +4,6 @@ import {ConfigClass} from '../../src/decorators/class/ConfigClass';
 import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {TestHelper} from '../TestHelper';
 import {promises as fsp} from 'fs';
-import * as optimist from 'optimist';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassOptions} from '../../src/decorators/class/IConfigClass';
@@ -240,7 +239,7 @@ describe('ConfigClass', () => {
     afterEach(async () => {
       await TestHelper.removeTempFolder();
       process.env = saveENV;
-      delete optimist.argv['num'];
+      process.argv = process.argv.filter(s => !s.startsWith('--num'));
       delete process.env['num'];
       delete process.env['num2'];
     });
@@ -326,7 +325,7 @@ describe('ConfigClass', () => {
         num: number = 15;
       }
 
-      optimist.argv['num'] = 101;
+      process.argv.push('--num=101');
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
 
       chai.expect(c.num).to.equal(15);
@@ -366,7 +365,7 @@ describe('ConfigClass', () => {
         num2: number = 55;
       }
 
-      optimist.argv['num'] = 120;
+      process.argv.push('--num=120');
       process.env['num2'] = '120';
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.num).to.equal(55);
@@ -425,14 +424,14 @@ describe('ConfigClass', () => {
 
     const cleanUp = () => {
 
-      delete optimist.argv['config-path'];
-      delete optimist.argv['config-attachState'];
-      delete optimist.argv['config-attachDesc'];
-      delete optimist.argv['config-rewrite-cli'];
-      delete optimist.argv['config-rewrite-env'];
-      delete optimist.argv['config-string-enum'];
-      delete optimist.argv['config-save-and-exist'];
-      delete optimist.argv['config-save-if-not-exist'];
+      process.argv = process.argv.filter(s => !s.startsWith('--config-path') &&
+        !s.startsWith('--config-attachState') &&
+        !s.startsWith('--config-attachDesc') &&
+        !s.startsWith('--config-rewrite-cli') &&
+        !s.startsWith('--config-rewrite-env') &&
+        !s.startsWith('--config-string-enum') &&
+        !s.startsWith('--config-save-and-exist') &&
+        !s.startsWith('--config-save-if-not-exist'));
     };
     beforeEach(cleanUp);
     afterEach(cleanUp);
@@ -476,14 +475,14 @@ describe('ConfigClass', () => {
 
     it('should set', async () => {
 
-      optimist.argv['config-path'] = 'test';
-      optimist.argv['config-attachState'] = true;
-      optimist.argv['config-attachDesc'] = true;
-      optimist.argv['config-rewrite-cli'] = true;
-      optimist.argv['config-rewrite-env'] = true;
-      optimist.argv['config-string-enum'] = true;
-      optimist.argv['config-save-and-exist'] = true;
-      optimist.argv['config-save-if-not-exist'] = false;
+      process.argv.push('--config-path=test');
+      process.argv.push('--config-attachState=true');
+      process.argv.push('--config-attachDesc=true');
+      process.argv.push('--config-rewrite-cli=true');
+      process.argv.push('--config-rewrite-env=true');
+      process.argv.push('--config-string-enum=true');
+      process.argv.push('--config-save-and-exist=true');
+      process.argv.push('--config-save-if-not-exist=false');
 
       @ConfigClass({
         cli: {
@@ -511,26 +510,26 @@ describe('ConfigClass', () => {
       const opts: ConfigClassOptions = c.__options;
 
       chai.expect(opts.configPath).to.equal('test');
-      chai.expect(opts.enumsAsString).to.equal(true);
-      chai.expect(opts.attachDescription).to.equal(true);
-      chai.expect(opts.rewriteENVConfig).to.equal(true);
-      chai.expect(opts.rewriteCLIConfig).to.equal(true);
-      chai.expect(opts.attachState).to.equal(true);
-      chai.expect(opts.saveIfNotExist).to.equal(false);
+      chai.expect(opts.enumsAsString).to.equal(true, 'opts.enumsAsString');
+      chai.expect(opts.attachDescription).to.equal(true, 'opts.attachDescription');
+      chai.expect(opts.rewriteENVConfig).to.equal(true, 'opts.rewriteENVConfig');
+      chai.expect(opts.rewriteCLIConfig).to.equal(true, 'opts.rewriteCLIConfig');
+      chai.expect(opts.attachState).to.equal(true, 'opts.attachState');
+      chai.expect(opts.saveIfNotExist).to.equal(false, 'opts.saveIfNotExist');
 
     });
 
 
     it('should not set when disabled', async () => {
 
-      optimist.argv['config-path'] = 'test';
-      optimist.argv['config-attachState'] = true;
-      optimist.argv['config-attachDesc'] = true;
-      optimist.argv['config-rewrite-cli'] = true;
-      optimist.argv['config-rewrite-env'] = true;
-      optimist.argv['config-string-enum'] = true;
-      optimist.argv['config-save-and-exist'] = true;
-      optimist.argv['config-save-if-not-exist'] = false;
+      process.argv.push('--config-path=test');
+      process.argv.push('--config-attachState=true');
+      process.argv.push('--config-attachDesc=true');
+      process.argv.push('--config-rewrite-cli=true');
+      process.argv.push('--config-rewrite-env=true');
+      process.argv.push('--config-string-enum=true');
+      process.argv.push('--config-save-and-exist=true');
+      process.argv.push('--config-save-if-not-exist=false');
 
       @ConfigClass()
       class C {
@@ -558,10 +557,10 @@ describe('ConfigClass', () => {
 
     const cleanUp = () => {
 
-      delete optimist.argv['default-num'];
+      process.argv = process.argv.filter(s => !s.startsWith('--default-num')
+        && !s.startsWith('--default-num2') && !s.startsWith('--num2'));
+      process.argv.push('--config-path=test');
       delete process.env['default-num'];
-      delete optimist.argv['default-num2'];
-      delete optimist.argv['num2'];
       delete process.env['default-sub-num'];
       delete process.env['num'];
       delete process.env['default-num2'];
@@ -721,13 +720,13 @@ describe('ConfigClass', () => {
 
       }
 
-      optimist.argv['default-num'] = '100';
-      optimist.argv['default-num2'] = '50';
-      optimist.argv['num2'] = '52';
+      process.argv.push('--default-num=100');
+      process.argv.push('--default-num2=50');
+      process.argv.push('--num2=52');
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
-      chai.expect(c.__defaults).to.deep.equal({num: '100', num2: '50'});
+      chai.expect(c.__defaults).to.deep.equal({num: 100, num2: 50});
       chai.expect(c.num).to.equal(100);
       chai.expect(c.num2).to.equal(52);
 
@@ -749,9 +748,9 @@ describe('ConfigClass', () => {
 
       process.env['default-num'] = '100';
       process.env['default-num2'] = '50';
-      optimist.argv['default-num'] = '100';
-      optimist.argv['default-num2'] = '50';
-      optimist.argv['num2'] = '52';
+      process.argv.push('--default-num=100');
+      process.argv.push('--default-num2=50');
+      process.argv.push('--num2=52');
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
