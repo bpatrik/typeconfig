@@ -283,6 +283,32 @@ describe('ConfigClass', () => {
       }).to.throw(Error, 'readonly');
     });
 
+    it('should load throw syntax error', async () => {
+
+      enum Test {
+        a, b, c
+      }
+
+      @ConfigClass({configPath: filePath})
+      class C {
+
+        @ConfigProperty({type: Test})
+        e: Test = Test.a;
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const json = c.toJSON();
+      json.e = 'test';
+
+      await fsp.writeFile(filePath, JSON.stringify(json, null, 4));
+      chai.expect(() => {
+        c.loadSync();
+      }).to.throw(TypeError);
+
+    });
+
+
     it('should save', async () => {
 
       @ConfigClass({configPath: filePath})

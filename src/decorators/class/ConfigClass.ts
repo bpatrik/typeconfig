@@ -154,6 +154,9 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
               console.log('[Typeconfig] cannot read config from file');
               console.error(e);
             }
+            if (e instanceof TypeError) {
+              throw e;
+            }
           }
         }
         let shouldSave = false;
@@ -210,6 +213,10 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
             if (debugMode === true || e instanceof SyntaxError) {
               console.log('[Typeconfig] cannot config from file');
               console.error(e);
+            }
+
+            if (e instanceof TypeError) {
+              throw e;
             }
           }
         }
