@@ -1,5 +1,7 @@
 import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase';
 import {ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
+import * as fs from 'fs';
+import {promises as fsp} from 'fs';
 
 
 export interface ConfigCLIOptions {
@@ -46,6 +48,9 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
       enabled?: boolean
     }
   };
+
+  fs?: typeof fs;
+  fsPromise?: typeof fsp;
 }
 
 export interface IConfigClassPrivate extends IConfigClassPrivateBase, IConfigClass {

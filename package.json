@@ -1,8 +1,8 @@
 {
   "name": "typeconfig",
-  "version": "2.0.21",
+  "version": "2.0.22",
   "description": "Config loader for Typescript",
-  "main": "index.js",
+  "main": "common.js",
   "scripts": {
     "pretest": "tsc",
     "test": "nyc mocha --recursive test",

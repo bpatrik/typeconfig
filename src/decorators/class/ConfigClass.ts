@@ -40,6 +40,8 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
   options.cli.prefix = options.cli.prefix || 'config';
   options.cli.defaults = options.cli.defaults || {};
   options.cli.defaults.prefix = options.cli.defaults.prefix || 'default';
+  options.fs = options.fs || fs;
+  options.fsPromise = options.fsPromise || fsp;
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
     return class ConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate {
@@ -85,7 +87,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         if (options.configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(options.configPath, 'utf8'));
             if (debugMode === true) {
               console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
             }
@@ -106,7 +108,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         if (options.configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(fs.readFileSync(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(options.configPath, 'utf8'));
             if (debugMode === true) {
               console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
             }
@@ -146,7 +148,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         if (options.configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(fs.readFileSync(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(options.configPath, 'utf8'));
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
@@ -176,7 +178,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let exists = false;
 
         try {
-          fs.accessSync(options.configPath);
+          options.fs.accessSync(options.configPath);
           exists = true;
         } catch (e) {
           if (debugMode === true) {
@@ -206,7 +208,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         if (options.configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(await fsp.readFile(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(options.configPath, 'utf8'));
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
@@ -237,7 +239,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let exists = false;
 
         try {
-          await fsp.access(options.configPath);
+          await options.fsPromise.access(options.configPath);
           exists = true;
         } catch (e) {
           if (debugMode === true) {
@@ -262,7 +264,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
 
       saveSync(): void {
         if (options.configPath) {
-          fs.writeFileSync(options.configPath, JSON.stringify(this, null, 4));
+          options.fs.writeFileSync(options.configPath, JSON.stringify(this, null, 4));
         }
       }
 
