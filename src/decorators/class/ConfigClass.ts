@@ -83,11 +83,12 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
       }
 
-      async __loadDefaults(): Promise<any> {
-        if (options.configPath) {
+      async __loadDefaults(pathOverride?: string): Promise<any> {
+        const configPath = pathOverride || options.configPath;
+        if (configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(configPath, 'utf8'));
             if (debugMode === true) {
               console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
             }
@@ -104,11 +105,12 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         this.__loadCLIENVDefaults();
       }
 
-      __loadDefaultsSync(): void {
-        if (options.configPath) {
+      __loadDefaultsSync(pathOverride?: string): void {
+        const configPath = pathOverride || options.configPath;
+        if (configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(configPath, 'utf8'));
             if (debugMode === true) {
               console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
             }
@@ -138,17 +140,19 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         return this.__loadJSONObject(config, true);
       }
 
-      loadSync(): void {
+      loadSync(pathOverride?: string): void {
 
-        if (debugMode === true && options.configPath) {
-          console.log('[Typeconfig] Loading config. Path: ' + options.configPath);
+        const configPath = pathOverride || options.configPath;
+
+        if (debugMode === true && configPath) {
+          console.log('[Typeconfig] Loading config. Path: ' + configPath);
         }
-        this.__loadDefaultsSync();
+        this.__loadDefaultsSync(configPath);
 
-        if (options.configPath) {
+        if (configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(configPath, 'utf8'));
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
@@ -178,7 +182,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let exists = false;
 
         try {
-          options.fs.accessSync(options.configPath);
+          options.fs.accessSync(configPath);
           exists = true;
         } catch (e) {
           if (debugMode === true) {
@@ -202,13 +206,14 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
       }
 
 
-      async load(): Promise<any> {
-        await this.__loadDefaults();
+      async load(pathOverride?: string): Promise<any> {
+        const configPath = pathOverride || options.configPath;
+        await this.__loadDefaults(configPath);
 
-        if (options.configPath) {
+        if (configPath) {
 
           try {
-            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(options.configPath, 'utf8'));
+            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(configPath, 'utf8'));
             delete config.__defaults;
             this.__loadJSONObject(config);
           } catch (e) {
@@ -239,7 +244,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         let exists = false;
 
         try {
-          await options.fsPromise.access(options.configPath);
+          await options.fsPromise.access(configPath);
           exists = true;
         } catch (e) {
           if (debugMode === true) {
@@ -262,15 +267,19 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
         }
       }
 
-      saveSync(): void {
-        if (options.configPath) {
-          options.fs.writeFileSync(options.configPath, JSON.stringify(this, null, 4));
+      saveSync(pathOverride?: string): void {
+        const configPath = pathOverride || options.configPath;
+
+        if (configPath) {
+          options.fs.writeFileSync(configPath, JSON.stringify(this, null, 4));
         }
       }
 
-      async save(): Promise<any> {
-        if (options.configPath) {
-          await ConfigLoader.saveJSONConfigFile(options.configPath, this);
+      async save(pathOverride?: string): Promise<any> {
+        const configPath = pathOverride || options.configPath;
+
+        if (configPath) {
+          await ConfigLoader.saveJSONConfigFile(configPath, this);
         }
       }
 
