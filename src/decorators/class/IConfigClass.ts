@@ -61,15 +61,17 @@ export interface IConfigClassPrivate extends IConfigClassPrivateBase, IConfigCla
 export interface IConfigClass extends IConfigClassBase {
   /**
    * Loads the config from file, cli and ENV synchronously. Does not reinit the object from class
+   * @param pathOverride - overrides the config path
    */
-  loadSync(): void;
+  loadSync(pathOverride?: string): void;
 
   /**
    * Loads the config from file, cli and ENV asynchronously. Does not reinit the object from class
+   * @param pathOverride - overrides the config path
    */
-  load(): Promise<any>;
+  load(pathOverride?: string): Promise<any>;
 
-  save(): Promise<any>;
+  save(pathOverride?: string): Promise<any>;
 
-  saveSync(): void;
+  saveSync(pathOverride?: string): void;
 }

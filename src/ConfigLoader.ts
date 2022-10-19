@@ -67,12 +67,16 @@ export class ConfigLoader {
     return Loader.loadObject(configObject, config);
   }
 
-  public static async saveJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }, _fsp: typeof fsp = fsp): Promise<void> {
+  public static async saveJSONConfigFile(configFilePath: string,
+                                         configObject: { [kes: string]: any },
+                                         _fsp: typeof fsp = fsp): Promise<void> {
     await _fsp.writeFile(configFilePath, JSON.stringify(configObject, null, 4));
   }
 
 
-  public static async loadJSONConfigFile(configFilePath: string, configObject: { [kes: string]: any }, _fsp: typeof fsp = fsp): Promise<boolean> {
+  public static async loadJSONConfigFile(configFilePath: string,
+                                         configObject: { [kes: string]: any },
+                                         _fsp: typeof fsp = fsp): Promise<boolean> {
     try {
       await _fsp.access(configFilePath);
     } catch (e) {
