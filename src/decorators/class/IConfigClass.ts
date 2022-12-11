@@ -15,7 +15,7 @@ export interface ConfigCLIOptions {
   exitOnConfig?: boolean;
 }
 
-export interface ConfigClassOptions extends ConfigClassOptionsBase {
+export interface ConfigClassOptions<TAGS> extends ConfigClassOptionsBase<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
@@ -30,9 +30,17 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
    */
   disableAutoReadonly?: boolean;
   /**
-   * tracks readonly property, but do not uses it for validation
+   * tracks readonly property, but do not use it for validation
    */
   softReadonly?: boolean;
+  /**
+   Attaches the following tags to all properties
+   */
+  tags?: TAGS[];
+  /**
+   Skips rendering (toJSON) properties with the following tags
+   */
+  skipTags?: TAGS[];
 
   cli?: {
     prefix?: string,
@@ -53,12 +61,12 @@ export interface ConfigClassOptions extends ConfigClassOptionsBase {
   fsPromise?: typeof fsp;
 }
 
-export interface IConfigClassPrivate extends IConfigClassPrivateBase, IConfigClass {
+export interface IConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>, IConfigClass<TAGS> {
   __printMan(): string;
 }
 
 
-export interface IConfigClass extends IConfigClassBase {
+export interface IConfigClass<TAGS> extends IConfigClassBase<TAGS> {
   /**
    * Loads the config from file, cli and ENV synchronously. Does not reinit the object from class
    * @param pathOverride - overrides the config path

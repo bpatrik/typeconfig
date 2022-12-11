@@ -1,9 +1,9 @@
 import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase';
 
-export interface IWebConfigClassPrivate extends IConfigClassPrivateBase, IWebConfigClass {
+export interface IWebConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>, IWebConfigClass<TAGS> {
 }
 
 
-export interface IWebConfigClass extends IConfigClassBase {
+export interface IWebConfigClass<TAGS> extends IConfigClassBase<TAGS> {
   load(configJson?: any): void;
 }

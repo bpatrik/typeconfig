@@ -485,8 +485,8 @@ describe('ConfigClass', () => {
 
       }
 
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      const opts: ConfigClassOptions = c.__options;
+      const c = ConfigClassBuilder.attachPrivateInterface<string[], C>(new C());
+      const opts: ConfigClassOptions<string[]> = c.__options;
 
       chai.expect(opts.configPath).to.not.equal('test');
       chai.expect(opts.enumsAsString).to.not.equal(true);
@@ -532,8 +532,8 @@ describe('ConfigClass', () => {
       }
 
 
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      const opts: ConfigClassOptions = c.__options;
+      const c = ConfigClassBuilder.attachPrivateInterface<string[], C>(new C());
+      const opts: ConfigClassOptions<string[]> = c.__options;
 
       chai.expect(opts.configPath).to.equal('test');
       chai.expect(opts.enumsAsString).to.equal(true, 'opts.enumsAsString');
@@ -566,8 +566,8 @@ describe('ConfigClass', () => {
       }
 
 
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      const opts: ConfigClassOptions = c.__options;
+      const c = ConfigClassBuilder.attachPrivateInterface<string[], C>(new C());
+      const opts: ConfigClassOptions<string[]> = c.__options;
       chai.expect(opts.configPath).to.not.equal('test');
       chai.expect(opts.enumsAsString).to.not.equal(true);
       chai.expect(opts.attachState).to.not.equal(true);
@@ -787,6 +787,106 @@ describe('ConfigClass', () => {
 
     });
 
+
+  });
+  describe('tags', () => {
+
+    const cleanUp = () => {
+
+      process.argv = process.argv.filter(s => !s.startsWith('--default-num')
+        && !s.startsWith('--default-num2') && !s.startsWith('--num2'));
+      process.argv.push('--config-path=test');
+      delete process.env['default-num'];
+      delete process.env['default-sub-num'];
+      delete process.env['num'];
+      delete process.env['default-num2'];
+      delete process.env['num2'];
+      delete process.env['default-sub-subsub-myNum'];
+    };
+
+    beforeEach(cleanUp);
+    afterEach(cleanUp);
+
+
+    it('should set tags to sub class', async () => {
+
+      @SubConfigClass({tags: ['inner-sub']})
+      class Sub {
+
+        @ConfigProperty()
+        subNum: number = 5;
+
+
+      }
+
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        },
+        tags: ['main']
+      })
+      class C {
+
+        @ConfigProperty()
+        mainNum: number = 99;
+
+        @ConfigProperty({type: Sub, tags: ['sub1']})
+        sub: Sub = new Sub();
+
+        @ConfigProperty({type: Sub, tags: ['sub2']})
+        sub2: Sub = new Sub();
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+
+      chai.expect(c.__state.sub.tags).to.deep.equal(['sub1', 'main']);
+      chai.expect(c.__state.sub.value.__state.subNum.tags).to.deep.equal(['inner-sub']);
+    });
+
+
+    it('should set tags to sub class', async () => {
+
+      @SubConfigClass({tags: ['inner-sub']})
+      class Sub {
+
+        @ConfigProperty()
+        subNum: number = 5;
+        @ConfigProperty({tags: ['skip']})
+        skip: number = 5;
+
+
+      }
+
+      @ConfigClass({
+        cli: {
+          defaults: {
+            enabled: true
+          }
+        },
+        tags: ['main']
+      })
+      class C {
+
+        @ConfigProperty()
+        mainNum: number = 99;
+
+        @ConfigProperty({type: Sub, tags: ['skip']})
+        shouldSkipThis: Sub = new Sub();
+
+        @ConfigProperty({type: Sub, tags: ['sub']})
+        sub: Sub = new Sub();
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+
+      chai.expect(c.toJSON({skipTags: ['skip']})).to.deep.equal({mainNum: 99, sub: {subNum: 5}});
+    });
 
   });
 

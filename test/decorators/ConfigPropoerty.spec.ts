@@ -675,14 +675,14 @@ describe('ConfigProperty', () => {
       @SubConfigClass()
       class Sub {
         @ConfigProperty({arrayType: SubSub})
-        subArr: (IConfigClassPrivate & SubSub)[] = <any>[new SubSub(2), new SubSub(3)];
+        subArr: (IConfigClassPrivate<string[]> & SubSub)[] = <any>[new SubSub(2), new SubSub(3)];
       }
 
 
       @ConfigClass()
       class C {
         @ConfigProperty({type: Sub})
-        sub: (IConfigClassPrivate & Sub) = <any>new Sub();
+        sub: (IConfigClassPrivate<string[]> & Sub) = <any>new Sub();
       }
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
@@ -823,7 +823,7 @@ describe('ConfigProperty', () => {
       @ConfigClass()
       class C {
         @ConfigProperty({type: Sub})
-        sub: IConfigClassPrivate & Sub = <any>new Sub();
+        sub: IConfigClassPrivate<string[]> & Sub = <any>new Sub();
       }
 
       process.env['sub-num'] = '20';

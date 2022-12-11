@@ -6,15 +6,16 @@ import {SubClassOptions} from '../SubClassOptions';
 import {Loader} from '../../../Loader';
 
 
-export function ConfigClassBase(constructorFunction: new (...args: any[]) => any, options: SubClassOptions) {
+export function ConfigClassBase<TAGS>(constructorFunction: new (...args: any[]) => any, options: SubClassOptions<TAGS>) {
   if (typeof options === 'undefined') {
     throw new Error('options not set');
   }
-  return class ConfigClassBaseType extends constructorFunction implements IConfigClassPrivateBase {
-    __state: { [key: string]: IPropertyMetadata<any, any> };
+  return class ConfigClassBaseType extends constructorFunction implements IConfigClassPrivateBase<TAGS> {
+    __state: { [key: string]: IPropertyMetadata<any, any, TAGS> };
     __rootConfig: ConfigClassBaseType;
     __propPath = '';
     __created = false;
+    __prototype = constructorFunction.prototype;
 
     constructor(...args: any[]) {
       super(...args);
@@ -26,7 +27,15 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
         }
         this.__state[key] = {...tmpState[key]};
       }
-
+      // Only add tags to the current class prototype
+      if (options.tags) {
+        for (const key of Object.keys(this.__prototype)) {
+          if (typeof this.__state[key] === 'undefined') {
+            continue;
+          }
+          this.__state[key].tags = (this.__state[key].tags || []).concat(options.tags);
+        }
+      }
       for (const key of Object.keys(this.__state)) {
         if (typeof this.__state[key].value === 'undefined') {
           continue;
@@ -40,7 +49,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       this.__created = true;
     }
 
-    get __options(): SubClassOptions {
+    get __options(): SubClassOptions<TAGS> {
       return options;
     }
 
@@ -87,7 +96,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
       return ret;
     }
 
-    __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any> | any }): void {
+    __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any, TAGS> | any }): void {
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return;
       }
@@ -423,7 +432,7 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
     }
 
 
-    toJSON(opt?: ToJSONOptions): { [key: string]: any } {
+    toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
       const ret: { [key: string]: any } = {};
 
@@ -462,7 +471,8 @@ export function ConfigClassBase(constructorFunction: new (...args: any[]) => any
 
       for (const key of Object.keys(this.__state)) {
         if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
-          typeof this.__state[key].value === 'undefined') {
+          typeof this.__state[key].value === 'undefined' ||
+          (opt.skipTags && (this.__state[key].tags || []).findIndex(t => opt.skipTags.includes(t)) !== -1)) {
           continue;
         }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {

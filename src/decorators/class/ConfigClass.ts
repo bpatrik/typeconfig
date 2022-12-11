@@ -18,7 +18,7 @@ const cliMap = {
   exitOnConfig: 'save-and-exist',
 };
 
-function parseCLIOptions(options: ConfigClassOptions) {
+function parseCLIOptions<TAGS>(options: ConfigClassOptions<TAGS>) {
 
   for (const key of Object.keys(cliMap)) {
     const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
@@ -33,7 +33,7 @@ function parseCLIOptions(options: ConfigClassOptions) {
   return options;
 }
 
-export function ConfigClass(options: ConfigClassOptions = {}): any {
+export function ConfigClass<TAGS>(options: ConfigClassOptions<TAGS> = {}): any {
   options.saveIfNotExist = typeof options.saveIfNotExist !== 'undefined' ? options.saveIfNotExist : true;
   options.cli = options.cli || <any>{};
   options.cli.enable = options.cli.enable || {};
@@ -44,7 +44,7 @@ export function ConfigClass(options: ConfigClassOptions = {}): any {
   options.fsPromise = options.fsPromise || fsp;
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
-    return class ConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate {
+    return class ConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IConfigClassPrivate<TAGS> {
 
 
       constructor(...args: any[]) {

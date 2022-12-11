@@ -1,7 +1,7 @@
 import {IPropertyMetadata, PropertyOptions} from './IPropertyState';
 import {Utils} from '../../Utils';
 
-export function ConfigProperty<T, C>(options: PropertyOptions<T, C> = {}) {
+export function ConfigProperty<T, C, TAGS>(options: PropertyOptions<T, C, TAGS> = {}) {
   return (target: any, property: string): any => {
     let type = options.type;
     if (typeof type === 'undefined') {
@@ -27,10 +27,11 @@ export function ConfigProperty<T, C>(options: PropertyOptions<T, C> = {}) {
         type = 'date';
         break;
     }
-    const state: { [key: string]: IPropertyMetadata<any, any> } = target.__state || {};
+    const state: { [key: string]: IPropertyMetadata<any, any, TAGS> } = target.__state || {};
 
-    state[property] = <IPropertyMetadata<T, C>>options;
+    state[property] = <IPropertyMetadata<T, C, TAGS>>options;
     state[property].type = type;
+
     const isEnumType = Utils.isEnum(type);
     if (isEnumType) {
       state[property].isEnumType = isEnumType;

@@ -1,15 +1,23 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "importHelpers": true,
     "noImplicitAny": true,
+    "downlevelIteration": true,
     "module": "commonjs",
-    "target": "es2015",
+    "target": "es2017",
     "moduleResolution": "node",
     "sourceMap": true,
     "declaration": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": true
   },
+  "lib": [
+    "es2020",
+    "dom"
+  ],
   "exclude": [
     "node_modules",
     "example"

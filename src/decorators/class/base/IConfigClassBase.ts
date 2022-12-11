@@ -2,7 +2,7 @@ import {IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
 import {SubClassOptions} from '../SubClassOptions';
 
 
-export interface ToJSONOptions {
+export interface ToJSONOptions<TAGS> {
   attachDescription?: boolean;
   attachState?: boolean;
   /**
@@ -10,26 +10,30 @@ export interface ToJSONOptions {
    */
   attachVolatile?: boolean;
   enumsAsString?: boolean;
+  /**
+   Skips properties with the following tags
+   */
+  skipTags?: TAGS[];
 }
 
-export interface IConfigClassBase {
+export interface IConfigClassBase<TAGS> {
 
-  toJSON(opt?: ToJSONOptions): { [key: string]: any };
+  toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any };
 
 }
 
-export interface IConfigClassPrivateBase extends IConfigClassBase {
-  __state: { [key: string]: IPropertyMetadata<any, any> };
+export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
+  __state: { [key: string]: IPropertyMetadata<any, any, TAGS> };
   __defaults: { [key: string]: any };
-  __rootConfig: IConfigClassPrivateBase;
+  __rootConfig: IConfigClassPrivateBase<TAGS>;
   __propPath: string;
-  __options: SubClassOptions;
+  __options: SubClassOptions<TAGS>;
 
-  toJSON(opt?: ToJSONOptions): { [key: string]: any };
+  toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any };
 
   __getENVAliases(): { key: string, alias: string }[];
 
-  __setParentConfig(propertyPath: string, rootConf: IConfigClassPrivateBase): void;
+  __setParentConfig(propertyPath: string, rootConf: IConfigClassPrivateBase<TAGS>): void;
 
   __validateAll(exceptionStack?: string[]): void;
 
@@ -51,7 +55,7 @@ export interface IConfigClassPrivateBase extends IConfigClassBase {
 
   __getNavigatableState(): any;
 
-  __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any> | any }): void;
+  __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any, TAGS> | any }): void;
 
   __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
 }

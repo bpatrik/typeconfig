@@ -3,27 +3,39 @@ import {ConfigClassBase} from './ConfigClassBase';
 import {SubClassOptions} from '../SubClassOptions';
 
 
-export interface ConfigClassOptionsBase extends SubClassOptions {
+export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
   enumsAsString?: boolean;
+  /**
+   * Attaches property state (tags, default values) to JSON
+   */
   attachState?: boolean;
   /**
    * If a property is set through cli or env variable, it becomes readonly
    */
   disableAutoReadonly?: boolean;
   /**
-   * tracks readonly property, but do not uses it for validation
+   * tracks readonly property, but do not use it for validation
    */
   softReadonly?: boolean;
+  /**
+   Attaches the following tags to all properties
+   */
+  tags?: TAGS[];
+  /**
+   Skips rendering (toJSON) properties with the following tags
+   */
+  skipTags?: TAGS[];
 }
 
 
-export function AbstractRootConfigClass(constructorFunction: new (...args: any[]) => any, options: ConfigClassOptionsBase) {
-  return class RootConfigClass extends ConfigClassBase(constructorFunction, options) {
+export function AbstractRootConfigClass<TAGS>(constructorFunction: new (...args: any[]) => any,
+                                                         options: ConfigClassOptionsBase<TAGS>) {
+  return class RootConfigClass extends ConfigClassBase<TAGS>(constructorFunction, options) {
     constructor(...args: any[]) {
       super(...args);
 
