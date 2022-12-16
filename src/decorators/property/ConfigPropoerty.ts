@@ -1,7 +1,7 @@
 import {IPropertyMetadata, PropertyOptions} from './IPropertyState';
 import {Utils} from '../../Utils';
 
-export function ConfigProperty<T, C, TAGS>(options: PropertyOptions<T, C, TAGS> = {}) {
+export function ConfigProperty<T, C, TAGS = string>(options: PropertyOptions<T, C, TAGS> = {}) {
   return (target: any, property: string): any => {
     let type = options.type;
     if (typeof type === 'undefined') {

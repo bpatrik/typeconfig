@@ -33,7 +33,7 @@ function parseCLIOptions<TAGS>(options: ConfigClassOptions<TAGS>) {
   return options;
 }
 
-export function ConfigClass<TAGS>(options: ConfigClassOptions<TAGS> = {}): any {
+export function ConfigClass<TAGS = string>(options: ConfigClassOptions<TAGS> = {}): any {
   options.saveIfNotExist = typeof options.saveIfNotExist !== 'undefined' ? options.saveIfNotExist : true;
   options.cli = options.cli || <any>{};
   options.cli.enable = options.cli.enable || {};
