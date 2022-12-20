@@ -810,7 +810,7 @@ describe('ConfigClass', () => {
 
     it('should set tags to sub class', async () => {
 
-      @SubConfigClass({tags: ['inner-sub']})
+      @SubConfigClass({tags: {'inner-sub': true}})
       class Sub {
 
         @ConfigProperty()
@@ -825,17 +825,17 @@ describe('ConfigClass', () => {
             enabled: true
           }
         },
-        tags: ['main']
+        tags: {main: true}
       })
       class C {
 
         @ConfigProperty()
         mainNum: number = 99;
 
-        @ConfigProperty({type: Sub, tags: ['sub1']})
+        @ConfigProperty({type: Sub, tags: {'sub1': true}})
         sub: Sub = new Sub();
 
-        @ConfigProperty({type: Sub, tags: ['sub2']})
+        @ConfigProperty({type: Sub, tags: {'sub2': true}})
         sub2: Sub = new Sub();
 
       }
@@ -843,19 +843,19 @@ describe('ConfigClass', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
-      chai.expect(c.__state.sub.tags).to.deep.equal(['sub1', 'main']);
-      chai.expect(c.__state.sub.value.__state.subNum.tags).to.deep.equal(['inner-sub']);
+      chai.expect(c.__state.sub.tags).to.deep.equal({sub1: true, main: true});
+      chai.expect(c.__state.sub.value.__state.subNum.tags).to.deep.equal({'inner-sub': true});
     });
 
 
-    it('should set tags to sub class', async () => {
+    it('should skip', async () => {
 
-      @SubConfigClass({tags: ['inner-sub']})
+      @SubConfigClass({tags: {'inner-sub': true}})
       class Sub {
 
         @ConfigProperty()
         subNum: number = 5;
-        @ConfigProperty({tags: ['skip']})
+        @ConfigProperty({tags: {skip: true}})
         skip: number = 5;
 
 
@@ -867,17 +867,17 @@ describe('ConfigClass', () => {
             enabled: true
           }
         },
-        tags: ['main']
+        tags: {'main': true}
       })
       class C {
 
         @ConfigProperty()
         mainNum: number = 99;
 
-        @ConfigProperty({type: Sub, tags: ['skip']})
+        @ConfigProperty({type: Sub, tags: {'skip': true}})
         shouldSkipThis: Sub = new Sub();
 
-        @ConfigProperty({type: Sub, tags: ['sub']})
+        @ConfigProperty({type: Sub, tags: {'sub': true}})
         sub: Sub = new Sub();
 
       }
@@ -885,7 +885,7 @@ describe('ConfigClass', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       await c.load();
 
-      chai.expect(c.toJSON({skipTags: ['skip']})).to.deep.equal({mainNum: 99, sub: {subNum: 5}});
+      chai.expect(c.toJSON({skipTags: {'skip': true}})).to.deep.equal({mainNum: 99, sub: {subNum: 5}});
     });
 
   });

@@ -25,16 +25,16 @@ export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {
   /**
    Attaches the following tags to all properties
    */
-  tags?: TAGS[];
+  tags?: TAGS;
   /**
    Skips rendering (toJSON) properties with the following tags
    */
-  skipTags?: TAGS[];
+  skipTags?: TAGS;
 }
 
 
 export function AbstractRootConfigClass<TAGS>(constructorFunction: new (...args: any[]) => any,
-                                                         options: ConfigClassOptionsBase<TAGS>) {
+                                              options: ConfigClassOptionsBase<TAGS>) {
   return class RootConfigClass extends ConfigClassBase<TAGS>(constructorFunction, options) {
     constructor(...args: any[]) {
       super(...args);

@@ -15,7 +15,7 @@ export interface ConfigCLIOptions {
   exitOnConfig?: boolean;
 }
 
-export interface ConfigClassOptions<TAGS = string> extends ConfigClassOptionsBase<TAGS> {
+export interface ConfigClassOptions<TAGS  = { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
@@ -36,11 +36,11 @@ export interface ConfigClassOptions<TAGS = string> extends ConfigClassOptionsBas
   /**
    Attaches the following tags to all properties
    */
-  tags?: TAGS[];
+  tags?: TAGS;
   /**
    Skips rendering (toJSON) properties with the following tags
    */
-  skipTags?: TAGS[];
+  skipTags?: TAGS;
 
   cli?: {
     prefix?: string,
@@ -66,7 +66,7 @@ export interface IConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>
 }
 
 
-export interface IConfigClass<TAGS = string> extends IConfigClassBase<TAGS> {
+export interface IConfigClass<TAGS  = { [key: string]: any }> extends IConfigClassBase<TAGS> {
   /**
    * Loads the config from file, cli and ENV synchronously. Does not reinit the object from class
    * @param pathOverride - overrides the config path

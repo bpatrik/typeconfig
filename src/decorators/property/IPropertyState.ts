@@ -28,12 +28,12 @@ export type nonNumberTypes =
 export type propertyTypes = numberTypes | nonNumberTypes;
 
 
-export interface PropertyOptions<T, C, TAGS> {
+export interface PropertyOptions<T, C, TAGS extends { [key: string]: any }> {
 
   /**
    * List of tags attached to the property
    */
-  tags?: TAGS[];
+  tags?: TAGS;
 
   /**
    * Can be manual set, but annotation can also infer.
@@ -72,10 +72,10 @@ export interface PropertyOptions<T, C, TAGS> {
   constraint?: PropertyConstraint<T, any>;
 }
 
-export interface IPropertyMetadata<T, C, TAGS> extends PropertyOptions<T, C, TAGS> {
+export interface IPropertyMetadata<T, C, TAGS extends { [key: string]: any }> extends PropertyOptions<T, C, TAGS> {
   value: T;
   default: T;
-  tags?: TAGS[];
+  tags?: TAGS;
 
   min?: number;
   max?: number;

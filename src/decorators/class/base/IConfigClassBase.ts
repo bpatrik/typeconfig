@@ -2,7 +2,7 @@ import {IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
 import {SubClassOptions} from '../SubClassOptions';
 
 
-export interface ToJSONOptions<TAGS> {
+export interface ToJSONOptions<TAGS extends { [key: string]: any }> {
   attachDescription?: boolean;
   attachState?: boolean;
   /**
@@ -13,7 +13,7 @@ export interface ToJSONOptions<TAGS> {
   /**
    Skips properties with the following tags
    */
-  skipTags?: TAGS[];
+  skipTags?: TAGS;
 }
 
 export interface IConfigClassBase<TAGS> {

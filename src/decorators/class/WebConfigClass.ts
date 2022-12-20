@@ -3,7 +3,7 @@ import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRo
 import {IWebConfigClassPrivate} from './IWebConfigClass';
 
 
-export interface WebConfigClassOptions<TAGS> extends ConfigClassOptionsBase<TAGS> {
+export interface WebConfigClassOptions<TAGS extends { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {
   attachDescription?: boolean;
   attachState?: boolean;
   enumsAsString?: boolean;
@@ -15,11 +15,11 @@ export interface WebConfigClassOptions<TAGS> extends ConfigClassOptionsBase<TAGS
   /**
    Attaches the following tags to all properties
    */
-  tags?: TAGS[];
+  tags?: TAGS;
   /**
    Skips rendering (toJSON) properties with the following tags
    */
-  skipTags?: TAGS[];
+  skipTags?: TAGS;
 }
 
 export function WebConfigClass<TAGS>(options: WebConfigClassOptions<TAGS> = {}): any {

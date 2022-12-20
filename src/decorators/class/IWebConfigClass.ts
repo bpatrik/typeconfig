@@ -4,6 +4,6 @@ export interface IWebConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TA
 }
 
 
-export interface IWebConfigClass<TAGS = string> extends IConfigClassBase<TAGS> {
+export interface IWebConfigClass<TAGS = { [key: string]: any }> extends IConfigClassBase<TAGS> {
   load(configJson?: any): void;
 }

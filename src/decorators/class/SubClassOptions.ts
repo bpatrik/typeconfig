@@ -18,9 +18,9 @@ export interface SubClassOptions<TAGS> extends ToJSONOptions<TAGS> {
   /**
    Attaches the following tags to all properties
    */
-  tags?: TAGS[];
+  tags?: TAGS;
   /**
    Skips rendering (toJSON) properties with the following tags
    */
-  skipTags?: TAGS[];
+  skipTags?: TAGS;
 }
