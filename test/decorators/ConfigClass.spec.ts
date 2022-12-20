@@ -886,6 +886,13 @@ describe('ConfigClass', () => {
       await c.load();
 
       chai.expect(c.toJSON({skipTags: {'skip': true}})).to.deep.equal({mainNum: 99, sub: {subNum: 5}});
+      chai.expect(c.toJSON({
+        skipTags: {'skip': true},
+        keepTags: {'sub': true, 'inner-sub': true}
+      })).to.deep.equal({
+        sub: {subNum: 5}
+      });
+
     });
 
   });

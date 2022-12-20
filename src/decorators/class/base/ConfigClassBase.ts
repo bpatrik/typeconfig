@@ -475,7 +475,9 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
           typeof this.__state[key].value === 'undefined' ||
           (opt.skipTags && this.__state[key].tags &&
-            Object.keys(opt.skipTags).findIndex((k) => opt.skipTags[k] === this.__state[key].tags[k]) !== -1)) {
+            Object.keys(opt.skipTags).findIndex((k) => opt.skipTags[k] === this.__state[key].tags[k]) !== -1) ||
+          (opt.keepTags && this.__state[key].tags &&
+            Object.keys(opt.keepTags).findIndex((k) => opt.keepTags[k] === this.__state[key].tags[k]) === -1)) {
           continue;
         }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {

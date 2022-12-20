@@ -30,6 +30,10 @@ export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {
    Skips rendering (toJSON) properties with the following tags
    */
   skipTags?: TAGS;
+  /**
+   Keep properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
+   */
+  keepTags?: TAGS;
 }
 
 

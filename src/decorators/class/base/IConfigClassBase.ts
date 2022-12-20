@@ -11,9 +11,13 @@ export interface ToJSONOptions<TAGS extends { [key: string]: any }> {
   attachVolatile?: boolean;
   enumsAsString?: boolean;
   /**
-   Skips properties with the following tags
+   Skips properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
    */
   skipTags?: TAGS;
+  /**
+   Keep properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
+   */
+  keepTags?: TAGS;
 }
 
 export interface IConfigClassBase<TAGS> {

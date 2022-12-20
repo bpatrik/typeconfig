@@ -20,6 +20,10 @@ export interface WebConfigClassOptions<TAGS extends { [key: string]: any }> exte
    Skips rendering (toJSON) properties with the following tags
    */
   skipTags?: TAGS;
+  /**
+   Keep properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
+   */
+  keepTags?: TAGS;
 }
 
 export function WebConfigClass<TAGS>(options: WebConfigClassOptions<TAGS> = {}): any {

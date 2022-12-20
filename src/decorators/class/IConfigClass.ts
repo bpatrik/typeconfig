@@ -41,6 +41,10 @@ export interface ConfigClassOptions<TAGS  = { [key: string]: any }> extends Conf
    Skips rendering (toJSON) properties with the following tags
    */
   skipTags?: TAGS;
+  /**
+   Keep properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
+   */
+  keepTags?: TAGS;
 
   cli?: {
     prefix?: string,
