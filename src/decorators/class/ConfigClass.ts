@@ -33,7 +33,7 @@ function parseCLIOptions<TAGS>(options: ConfigClassOptions<TAGS>) {
   return options;
 }
 
-export function ConfigClass<TAGS  = { [key: string]: any }>(options: ConfigClassOptions<TAGS> = {}): any {
+export function ConfigClass<TAGS = { [key: string]: any }>(options: ConfigClassOptions<TAGS> = {}): any {
   options.saveIfNotExist = typeof options.saveIfNotExist !== 'undefined' ? options.saveIfNotExist : true;
   options.cli = options.cli || <any>{};
   options.cli.enable = options.cli.enable || {};
@@ -218,7 +218,7 @@ export function ConfigClass<TAGS  = { [key: string]: any }>(options: ConfigClass
             this.__loadJSONObject(config);
           } catch (e) {
             if (debugMode === true || e instanceof SyntaxError) {
-              console.log('[Typeconfig] cannot config from file');
+              console.log('[Typeconfig] cannot read config from file');
               console.error(e);
             }
 
@@ -329,8 +329,16 @@ export function ConfigClass<TAGS  = { [key: string]: any }>(options: ConfigClass
         return ret;
       }
 
-
+      /**
+       * Clones the Config
+       */
+      clone<T>(): T & ConfigClassType {
+        const cloned = new ConfigClassType();
+        this.__cloneTo(cloned);
+        return cloned as T & ConfigClassType;
+      }
     };
   };
+
 }
 

@@ -29,7 +29,13 @@ export interface WebConfigClassOptions<TAGS extends { [key: string]: any }> exte
 export function WebConfigClass<TAGS>(options: WebConfigClassOptions<TAGS> = {}): any {
   return (constructorFunction: new (...args: any[]) => any) => {
     return class WebConfigClassType extends AbstractRootConfigClass(constructorFunction, options) implements IWebConfigClassPrivate<TAGS> {
-      load(configJson: { __defaults?: any, __state?: { [key: string]: { readonly?: boolean } } } = <any>{}): void {
+
+      /**
+       * Loads config from JSON and from Url Params
+       * It disregards {__defaults}
+       * @param configJson
+       */
+      load(configJson: { __defaults?: never, __state?: { [key: string]: { readonly?: boolean } } } = <any>{}): void {
 
         // postpone readonly loading
         const __state = configJson.__state;
@@ -40,11 +46,19 @@ export function WebConfigClass<TAGS>(options: WebConfigClassOptions<TAGS> = {}):
           WebConfigLoader.loadUrlParams(this);
         }
 
-
         // postponed readonly loading
         if (typeof __state !== 'undefined') {
           this.__loadStateJSONObject(__state);
         }
+      }
+
+      /**
+       * Clones the Config
+       */
+      clone<T>(): T & WebConfigClassType {
+        const cloned = new WebConfigClassType();
+        this.__cloneTo(cloned);
+        return cloned as T & WebConfigClassType;
       }
     };
   };

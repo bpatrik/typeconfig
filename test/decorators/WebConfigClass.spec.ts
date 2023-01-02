@@ -97,10 +97,38 @@ describe('WebConfigClass', () => {
       chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 5}}}, sub: {num: 5}});
       c.load({sub: {num: 99}});
       chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 5}}}, sub: {num: 99}});
-      c.load({__state: {sub: {num: {default: 77}}}, sub: {num: 66}});
-      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 77}}}, sub: {num: 66}});
+      c.load({__state: {sub: {num: {default: 77, readonly: true}}}, sub: {num: 66}});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({__state: {sub: {num: {default: 77, readonly: true}}}, sub: {num: 66}});
 
     });
+  });
+
+
+  it('should clone', async () => {
+
+    @SubConfigClass()
+    class S {
+
+      @ConfigProperty()
+      num: number = 5;
+
+    }
+
+    @WebConfigClass()
+    class C {
+      @ConfigProperty()
+      sub: S = new S();
+    }
+
+
+    const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.clone().toJSON()).to.deep.equal(c.toJSON());
+    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+    c.load({sub: {num: 99}});
+    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+    c.load({__state: {sub: {num: {default: 77, readonly: true}}}, sub: {num: 66}});
+    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+    chai.expect(c.clone<C>().sub.num).to.equal(66);
   });
 
 

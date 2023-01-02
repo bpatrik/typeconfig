@@ -151,7 +151,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     }
 
 
-    __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false): boolean {
+    __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false, skipValidation: boolean = false): boolean {
       let changed = false;
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return false;
@@ -162,7 +162,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         }
 
         const set = () => {
-          this[key] = sourceObject[key];
+          if (skipValidation) {
+            this.__state[key].value = sourceObject[key];
+          } else {
+            this[key] = sourceObject[key];
+          }
           changed = true;
           if (setToReadonly === true && options.disableAutoReadonly !== true) {
             this.__state[key].readonly = true;
@@ -182,7 +186,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         } else if (this.__state[key].value &&
           typeof this.__state[key].value.__loadJSONObject !== 'undefined') {
-          changed = this[key].__loadJSONObject(sourceObject[key], setToReadonly) || changed;
+          changed = this[key].__loadJSONObject(sourceObject[key], setToReadonly, skipValidation) || changed;
 
         } else if (this.__state[key].type === 'object') {
           set();
@@ -191,7 +195,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           this[key] = sourceObject[key];
           set();
         }
-
 
       });
       return changed;
@@ -433,6 +436,24 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       return newValue;
     }
 
+    /**
+     * Clones its state to the to object
+     * @param to config object to clone its state to
+     */
+    __cloneTo(to: ConfigClassBaseType): void {
+      const configJson = this.toJSON({attachState: true, attachDescription: false, attachVolatile: true, enumsAsString: false});
+
+      // postpone readonly loading
+      const __state = configJson.__state;
+      delete configJson.__state;
+
+      to.__loadJSONObject(configJson, false, true);
+
+      // postponed readonly loading
+      if (typeof __state !== 'undefined') {
+        to.__loadStateJSONObject(__state);
+      }
+    }
 
     toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
