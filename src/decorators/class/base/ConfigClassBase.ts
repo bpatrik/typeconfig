@@ -172,7 +172,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         const set = () => {
           if (skipValidation) {
-            this.__state[key].value = this.__validate(key, sourceObject[key]);
+            this.__state[key].value = this.__validateType(key, sourceObject[key]);
           } else {
             this[key] = sourceObject[key];
           }
