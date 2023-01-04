@@ -77,14 +77,55 @@ describe('WebConfigClass', () => {
       chai.expect(c.toJSON()).to.deep.equal({num: 10});
 
     });
+    it('should load subconfig array as config obj', async () => {
+
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @WebConfigClass()
+      class S {
+        @ConfigProperty({arrayType: SA})
+        arr: SA[] = [];
+      }
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+      }
+
+      const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {arr: []}});
+      c.load({sub: {arr: [{num: 1}, {num2: 2}]}});
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 2
+      });
+      c.sub.arr[1].num2 = 10;
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+
+    });
+
     it('should load sub config defaults', async () => {
 
       @SubConfigClass()
       class S {
-
         @ConfigProperty()
         num: number = 5;
-
       }
 
       @WebConfigClass()
@@ -104,31 +145,77 @@ describe('WebConfigClass', () => {
   });
 
 
-  it('should clone', async () => {
+  describe('should clone', () => {
 
-    @SubConfigClass()
-    class S {
+    it('config', async () => {
 
-      @ConfigProperty()
-      num: number = 5;
+      @SubConfigClass()
+      class S {
 
-    }
+        @ConfigProperty()
+        num: number = 5;
 
-    @WebConfigClass()
-    class C {
-      @ConfigProperty()
-      sub: S = new S();
-    }
+      }
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+      }
 
 
-    const c = WebConfigClassBuilder.attachPrivateInterface(new C());
-    chai.expect(c.clone().toJSON()).to.deep.equal(c.toJSON());
-    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
-    c.load({sub: {num: 99}});
-    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
-    c.load({__state: {sub: {num: {default: 77, readonly: true}}}, sub: {num: 66}});
-    chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
-    chai.expect(c.clone<C>().sub.num).to.equal(66);
+      const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.clone().toJSON()).to.deep.equal(c.toJSON());
+      chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+      c.load({sub: {num: 99}});
+      chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+      c.load({__state: {sub: {num: {default: 77, readonly: true}}}, sub: {num: 66}});
+      chai.expect(c.clone().toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+      chai.expect(c.clone<C>().sub.num).to.equal(66);
+    });
+
+    it('subconfig array as config obj', async () => {
+
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @WebConfigClass()
+      class S {
+        @ConfigProperty({arrayType: SA})
+        arr: SA[] = [];
+      }
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+      }
+
+      const _c = WebConfigClassBuilder.attachPrivateInterface(new C());
+      _c.load({sub: {arr: [{num: 1}, {num2: 2}]}});
+      const c = _c.clone<C>();
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 2
+      });
+      c.sub.arr[1].num2 = 10;
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+      chai.expect((c.clone<C>().sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+
+    });
   });
 
 

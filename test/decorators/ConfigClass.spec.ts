@@ -7,6 +7,7 @@ import {promises as fsp} from 'fs';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassOptions} from '../../src/decorators/class/IConfigClass';
+import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -784,9 +785,48 @@ describe('ConfigClass', () => {
       chai.expect(c.num).to.equal(5);
       chai.expect(c.num2).to.equal(52);
 
-
     });
 
+
+    it('default is always JSON', async () => {
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @SubConfigClass()
+      class S {
+        @ConfigProperty({arrayType: SA})
+        arr: SA[] = [new SA(11)];
+      }
+
+      @SubConfigClass()
+      class S2 {
+        @ConfigProperty()
+        num: number = 10;
+      }
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+        @ConfigProperty()
+        sub2: S2 = new S2();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
+      chai.expect(c.__defaults).to.deep.equal({sub2: {num: 10}, sub: {arr: [{num: 11}]}});
+
+    });
 
   });
   describe('tags', () => {

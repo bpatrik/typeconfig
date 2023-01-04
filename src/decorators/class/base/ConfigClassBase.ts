@@ -43,10 +43,19 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           continue;
         }
         this.__state[key].default = this.__state[key].value;
-        if (this.__state[key].value &&
-          typeof this.__state[key].value.__defaults !== 'undefined') {
-          this.__state[key].default = this.__state[key].value.__defaults;
+        if (this.__state[key].value) {
+          if (typeof this.__state[key].value.__defaults !== 'undefined') {
+            this.__state[key].default = this.__state[key].value.__defaults;
+          } else {
+            // defaults should only be plain jsons, no config classes
+            if (this.__state[key].value.toJSON) {
+              this.__state[key].default = this.__state[key].value.toJSON();
+            } else {
+              this.__state[key].default = JSON.parse(JSON.stringify(this.__state[key].value));
+            }
+          }
         }
+
       }
       this.__created = true;
     }
@@ -163,7 +172,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         const set = () => {
           if (skipValidation) {
-            this.__state[key].value = sourceObject[key];
+            this.__state[key].value = this.__validate(key, sourceObject[key]);
           } else {
             this[key] = sourceObject[key];
           }
@@ -442,17 +451,13 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
      */
     __cloneTo(to: ConfigClassBaseType): void {
       const configJson = this.toJSON({attachState: true, attachDescription: false, attachVolatile: true, enumsAsString: false});
-
       // postpone readonly loading
       const __state = configJson.__state;
       delete configJson.__state;
 
       to.__loadJSONObject(configJson, false, true);
+      to.__loadStateJSONObject(__state);
 
-      // postponed readonly loading
-      if (typeof __state !== 'undefined') {
-        to.__loadStateJSONObject(__state);
-      }
     }
 
     toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any } {
