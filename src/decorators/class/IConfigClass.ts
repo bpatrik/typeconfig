@@ -15,7 +15,7 @@ export interface ConfigCLIOptions {
   exitOnConfig?: boolean;
 }
 
-export interface ConfigClassOptions<TAGS = { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {
+export interface ConfigClassOptions<C, TAGS = { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
   saveIfNotExist?: boolean;
@@ -63,6 +63,17 @@ export interface ConfigClassOptions<TAGS = { [key: string]: any }> extends Confi
 
   fs?: typeof fs;
   fsPromise?: typeof fsp;
+
+  /**
+   * Runs this function after async loading the config
+   */
+  onLoaded?: (config: C) => Promise<void>;
+
+  /**
+   * Runs after async or sync loading the config
+   * It only runs after async loading if async onLoaded is not present
+   */
+  onLoadedSync?: (config: C) => void;
 }
 
 export interface IConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>, IConfigClass<TAGS> {

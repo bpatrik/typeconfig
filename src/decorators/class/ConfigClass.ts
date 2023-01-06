@@ -18,7 +18,7 @@ const cliMap = {
   exitOnConfig: 'save-and-exist',
 };
 
-function parseCLIOptions<TAGS>(options: ConfigClassOptions<TAGS>) {
+function parseCLIOptions<C, TAGS>(options: ConfigClassOptions<C, TAGS>) {
 
   for (const key of Object.keys(cliMap)) {
     const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
@@ -33,7 +33,7 @@ function parseCLIOptions<TAGS>(options: ConfigClassOptions<TAGS>) {
   return options;
 }
 
-export function ConfigClass<TAGS = { [key: string]: any }>(options: ConfigClassOptions<TAGS> = {}): any {
+export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigClassOptions<C, TAGS> = {}): any {
   options.saveIfNotExist = typeof options.saveIfNotExist !== 'undefined' ? options.saveIfNotExist : true;
   options.cli = options.cli || <any>{};
   options.cli.enable = options.cli.enable || {};
@@ -203,6 +203,11 @@ export function ConfigClass<TAGS = { [key: string]: any }>(options: ConfigClassO
         if (envParsed === false) {
           this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
+
+        // running postprocessing hook
+        if (options.onLoadedSync) {
+          options.onLoadedSync(this as any);
+        }
       }
 
 
@@ -264,6 +269,13 @@ export function ConfigClass<TAGS = { [key: string]: any }>(options: ConfigClassO
         }
         if (envParsed === false) {
           this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+        }
+
+        // running postprocessing hook
+        if (options.onLoaded) {
+          await options.onLoaded(this as any);
+        } else if (options.onLoadedSync) {
+          options.onLoadedSync(this as any);
         }
       }
 
