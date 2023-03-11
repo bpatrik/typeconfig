@@ -1,9 +1,7 @@
 import * as path from 'path';
 import {promises as fsp} from 'fs';
-import * as rimraf from 'rimraf';
-import * as util from 'util';
+import rimraf from 'rimraf';
 
-const rimrafPR = util.promisify(rimraf);
 
 export class TestHelper {
   public static readonly TempFolder = path.join(__dirname, 'tmp');
@@ -13,14 +11,15 @@ export class TestHelper {
     return path.join(this.TempFolder, fileName);
   }
 
-  public static async createTempFolder() {
+  public static async createTempFolder(): Promise<void> {
     await fsp.mkdir(this.TempFolder);
   }
 
-  public static async removeTempFolder() {
-    await rimrafPR(this.TempFolder);
+  public static async removeTempFolder(): Promise<void> {
+    await rimraf(this.TempFolder);
   }
-  public static async cleanTempFolder() {
+
+  public static async cleanTempFolder(): Promise<void> {
     await this.removeTempFolder();
     await this.createTempFolder();
   }

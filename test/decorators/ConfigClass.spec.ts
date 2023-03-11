@@ -12,7 +12,6 @@ import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
-const should = chai.should();
 
 describe('ConfigClass', () => {
 
@@ -131,7 +130,7 @@ describe('ConfigClass', () => {
         '--help                           prints this manual \n' +
         '\n' +
         '<appname> can be configured through the configuration file, cli switches and environmental variables. \n' +
-        'All settings are case sensitive. \n' +
+        'All settings are case-sensitive. \n' +
         'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
         'and through env variable: \'SET MyConf=5\' . \n' +
         '\n' +
@@ -164,7 +163,7 @@ describe('ConfigClass', () => {
         '--help                           prints this manual \n' +
         '\n' +
         '<appname> can be configured through the configuration file, cli switches and environmental variables. \n' +
-        'All settings are case sensitive. \n' +
+        'All settings are case-sensitive. \n' +
         'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
         'and through env variable: \'SET MyConf=5\' . \n' +
         '\n' +
@@ -215,7 +214,7 @@ describe('ConfigClass', () => {
         '--config-save-and-exist          creates config file and terminates \n' +
         '\n' +
         '<appname> can be configured through the configuration file, cli switches and environmental variables. \n' +
-        'All settings are case sensitive. \n' +
+        'All settings are case-sensitive. \n' +
         'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n' +
         'and through env variable: \'SET MyConf=5\' . \n' +
         '\n' +

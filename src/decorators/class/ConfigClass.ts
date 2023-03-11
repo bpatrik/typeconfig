@@ -328,7 +328,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
         }
 
         ret += '\n<appname> can be configured through the configuration file, cli switches and environmental variables. \n';
-        ret += 'All settings are case sensitive. \n';
+        ret += 'All settings are case-sensitive. \n';
         ret += 'Example for setting config MyConf through cli: \'<appname> --MyConf=5\' \n';
         ret += 'and through env variable: \'SET MyConf=5\' . \n';
 

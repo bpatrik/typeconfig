@@ -5,9 +5,9 @@ import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
+import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 
 const chai: any = require('chai');
-const should = chai.should();
 
 describe('ConfigProperty', () => {
 
@@ -765,6 +765,44 @@ describe('ConfigProperty', () => {
 
       chai.expect(() => {
         c.num = 10;
+      }).to.not.throw(Error, 'readonly');
+    });
+
+    it('should support soft readonly for sub array', () => {
+
+      @SubConfigClass({softReadonly: true})
+      class SA {
+        @ConfigProperty({readonly: true})
+        num: number = 5;
+
+        @ConfigProperty({readonly: true})
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @WebConfigClass({softReadonly: true})
+      class S {
+        @ConfigProperty({arrayType: SA, readonly: true})
+        arr: SA[] = [];
+      }
+
+      @WebConfigClass({softReadonly: true})
+      class C {
+        @ConfigProperty({readonly: true})
+        sub: S = new S();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.load();
+
+      chai.expect(() => {
+        c.sub = new S();
+        c.sub.arr = [new SA(2)];
+        c.sub.arr[0].num = 11;
+        c.sub.arr[0].num2 = 12;
       }).to.not.throw(Error, 'readonly');
     });
 
