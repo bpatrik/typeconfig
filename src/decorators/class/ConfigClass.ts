@@ -191,7 +191,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
           }
         }
         if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
-          this.saveSync();
+          this.saveSync(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);
           }
@@ -258,7 +258,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
           }
         }
         if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
-          await this.save();
+          await this.save(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);
           }
