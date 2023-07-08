@@ -48,7 +48,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
 
 
       constructor(...args: any[]) {
-        super(args);
+        super(...args);
 
         if (minimist(process.argv)['help']) {
           console.log(this.__printMan());

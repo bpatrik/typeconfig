@@ -1,6 +1,6 @@
 import * as path from 'path';
 import {promises as fsp} from 'fs';
-import rimraf from 'rimraf';
+import {rimraf} from 'rimraf';
 
 
 export class TestHelper {

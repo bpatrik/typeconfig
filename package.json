@@ -1,6 +1,6 @@
 {
   "name": "typeconfig",
-  "version": "2.0.38",
+  "version": "2.1.0",
   "description": "Config loader for Typescript",
   "main": "common.js",
   "scripts": {
@@ -23,23 +23,23 @@
   },
   "homepage": "https://github.com/bpatrik/typeconfig#readme",
   "devDependencies": {
-    "@types/chai": "4.3.4",
+    "@types/chai": "4.3.5",
     "@types/chai-as-promised": "7.1.5",
     "@types/minimist": "1.2.2",
     "@types/mocha": "10.0.1",
-    "@types/node": "18.15.0",
+    "@types/node": "20.4.1",
     "@types/rimraf": "3.0.2",
     "chai": "4.3.7",
     "chai-as-promised": "7.1.1",
     "coveralls": "3.1.1",
-    "jasmine-core": "4.5.0",
-    "karma": "6.4.1",
-    "mocha": "10.1.0",
+    "jasmine-core": "5.0.1",
+    "karma": "6.4.2",
+    "mocha": "10.2.0",
     "nyc": "15.1.0",
-    "rimraf": "4.4.0",
+    "rimraf": "5.0.1",
     "tslint": "5.20.1",
     "tslint-consistent-codestyle": "1.16.0",
-    "typescript": "4.9.5"
+    "typescript": "5.1.6"
   },
   "dependencies": {
     "minimist": "1.2.8"

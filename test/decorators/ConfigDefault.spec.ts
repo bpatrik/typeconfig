@@ -103,5 +103,88 @@ describe('ConfigDefault', () => {
     chai.expect(c.Defaults).to.deep.equal({num: 5, sub: {str: 'apple', subSub: {bool: true}}});
   });
 
+  it('should higher layer override deep default ', () => {
+
+
+    @ConfigClass()
+    class SubSub {
+
+      @ConfigDefaults()
+      Defaults: SubSub;
+
+      constructor(str: string = 'no color') {
+        this.str = str;
+      }
+
+      @ConfigProperty()
+      str: string = 'blue';
+
+    }
+
+    @ConfigClass()
+    class Sub {
+
+      @ConfigDefaults()
+      Defaults: Sub;
+
+      constructor(str: string = 'no value', subSub: SubSub = new SubSub()) {
+        this.str = str;
+        this.subSub = subSub;
+      }
+
+      @ConfigProperty()
+      str: string = 'apple';
+
+
+      @ConfigProperty()
+      subSub: SubSub = new SubSub();
+
+
+      toJSON(): any {
+      }
+    }
+
+    @ConfigClass()
+    class C {
+
+      @ConfigDefaults()
+      Defaults: C;
+
+
+      @ConfigProperty()
+      sub: Sub = new Sub();
+
+      @ConfigProperty()
+      sub2: Sub = new Sub('pear', new SubSub('red'));
+
+
+      toJSON(): any {
+      }
+    }
+
+    const c = new C();
+    chai.expect(c.sub.toJSON()).to.deep.equal({str: 'no value', subSub: {str: 'no color'}});
+    chai.expect(c.toJSON()).to.deep.equal({
+      sub: {str: 'no value', subSub: {str: 'no color'}},
+      sub2: {str: 'pear', subSub: {str: 'red'}}
+    });
+    chai.expect(c.Defaults).to.deep.equal({
+      sub: {str: 'no value', subSub: {str: 'no color'}},
+      sub2: {str: 'pear', subSub: {str: 'red'}}
+    });
+    chai.expect(c.sub.Defaults).to.deep.equal({str: 'no value', subSub: {str: 'no color'}});
+    chai.expect(c.sub2.Defaults).to.deep.equal({str: 'pear', subSub: {str: 'red'}});
+    chai.expect(c.sub2.subSub.Defaults).to.deep.equal({str: 'red'});
+
+    c.sub.str = 'peach';
+    chai.expect(c.toJSON()).to.deep.equal({
+      sub: {str: 'peach', subSub: {str: 'no color'}},
+      sub2: {str: 'pear', subSub: {str: 'red'}}
+    });
+    chai.expect(c.Defaults).to.deep.equal({
+      sub: {str: 'no value', subSub: {str: 'no color'}},
+      sub2: {str: 'pear', subSub: {str: 'red'}}
+    });
+  });
 
 });
