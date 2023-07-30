@@ -2,6 +2,7 @@ import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase
 import {ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
 import * as fs from 'fs';
 import {promises as fsp} from 'fs';
+import * as path from 'path';
 
 
 export interface ConfigCLIOptions {
@@ -18,6 +19,7 @@ export interface ConfigCLIOptions {
 export interface ConfigClassOptions<C, TAGS = { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
+  crateConfigPathIfNotExists?: boolean;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
@@ -61,6 +63,7 @@ export interface ConfigClassOptions<C, TAGS = { [key: string]: any }> extends Co
     }
   };
 
+  path?: typeof path;
   fs?: typeof fs;
   fsPromise?: typeof fsp;
 

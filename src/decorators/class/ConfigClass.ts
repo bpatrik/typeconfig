@@ -4,6 +4,7 @@ import {AbstractRootConfigClass} from './base/AbstractRootConfigClass';
 import {ConfigClassOptions, IConfigClassPrivate} from './IConfigClass';
 import * as fs from 'fs';
 import {promises as fsp} from 'fs';
+import * as path from 'path';
 
 const debugMode = process.env.NODE_ENV === 'debug';
 
@@ -41,6 +42,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
   options.cli.defaults = options.cli.defaults || {};
   options.cli.defaults.prefix = options.cli.defaults.prefix || 'default';
   options.fs = options.fs || fs;
+  options.path = options.path || path;
   options.fsPromise = options.fsPromise || fsp;
   options = parseCLIOptions(options);
   return (constructorFunction: new (...args: any[]) => any) => {
@@ -282,6 +284,12 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       saveSync(pathOverride?: string): void {
         const configPath = pathOverride || options.configPath;
 
+        if (options.crateConfigPathIfNotExists) {
+          const dir = options.path.dirname(configPath);
+          if (!options.fs.existsSync(dir)) {
+            options.fs.mkdirSync(dir, {recursive: true});
+          }
+        }
         if (configPath) {
           options.fs.writeFileSync(configPath, JSON.stringify(this, null, 4));
         }
@@ -290,6 +298,14 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       async save(pathOverride?: string): Promise<any> {
         const configPath = pathOverride || options.configPath;
 
+        if (options.crateConfigPathIfNotExists) {
+          const dir = options.path.dirname(configPath);
+          try {
+            await options.fsPromise.access(dir);
+          } catch (e) {
+            await options.fsPromise.mkdir(dir, {recursive: true});
+          }
+        }
         if (configPath) {
           await ConfigLoader.saveJSONConfigFile(configPath, this);
         }

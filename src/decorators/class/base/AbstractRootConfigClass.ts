@@ -6,6 +6,7 @@ import {SubClassOptions} from '../SubClassOptions';
 export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {
   attachDescription?: boolean;
   configPath?: string;
+  crateConfigPathIfNotExists?: boolean;
   saveIfNotExist?: boolean;
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
