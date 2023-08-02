@@ -461,7 +461,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     }
 
     toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any } {
-      opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options));
+      opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options, function (this: any, key: string, value: any) {
+        if (!['path', 'fs', 'psPromise'].includes(key)) {
+          return value;
+        }
+      }));
       const ret: { [key: string]: any } = {};
 
       // Attach __state
