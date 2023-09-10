@@ -720,6 +720,63 @@ describe('ConfigProperty', () => {
     chai.expect(c.vNum).to.deep.equal(10);
   });
 
+  it('should set confing in array', () => {
+
+    @SubConfigClass({softReadonly: true})
+    class T1 {
+      @ConfigProperty()
+      readonly type: string = 't1';
+
+      @ConfigProperty()
+      num: number = 5;
+
+      constructor(n: number = 5) {
+        this.num = n;
+      }
+    }
+
+    @SubConfigClass({softReadonly: true})
+    class T2 {
+      @ConfigProperty()
+      readonly type: string = 't2';
+
+      @ConfigProperty()
+      num: number = 5;
+
+      constructor(n: number = 5) {
+        this.num = n;
+      }
+    }
+
+    @SubConfigClass({softReadonly: true})
+    class Sub {
+      @ConfigProperty({
+        type: T1, typeBuilder: (value: { type: 't1' | 't2' }, config) => {
+          return value.type === 't1' ? T1 : T2;
+        }
+      })
+      t: T1 | T2 = new T1();
+
+      constructor(n = new T1()) {
+        this.t = n;
+      }
+    }
+
+
+    @WebConfigClass({softReadonly: true})
+    class C {
+      @ConfigProperty({arrayType: Sub})
+      arr: Sub[] = [new Sub(new T1(1)), new Sub(new T2(2))];
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't2', num: 2}}]});
+    c.arr.push(new Sub(new T1(3)));
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't2', num: 2}}, {t: {type: 't1', num: 3}}]});
+    c.arr[1].t = new T1(99);
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't1', num: 99}}, {t: {type: 't1', num: 3}}]});
+  });
+
 
   describe('readonly', () => {
 
@@ -921,7 +978,7 @@ describe('ConfigProperty', () => {
       class C {
 
         @ConfigProperty({
-          constraint: {assert: v => v >= 5}
+          constraint: {assert: (v: number) => v >= 5}
         })
         num: number = 5;
 
@@ -987,7 +1044,7 @@ describe('ConfigProperty', () => {
       class C {
 
         @ConfigProperty({
-          constraint: {assert: v => v >= 5, assertReason: 'Should be greater than five'}
+          constraint: {assert: (v: number) => v >= 5, assertReason: 'Should be greater than five'}
         })
         num: number = 5;
       }
