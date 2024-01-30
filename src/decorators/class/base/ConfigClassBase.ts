@@ -4,6 +4,7 @@ import {ConstraintError} from '../../exceptions/ConstraintError';
 import {Utils} from '../../../Utils';
 import {SubClassOptions} from '../SubClassOptions';
 import {Loader} from '../../../Loader';
+import {checkIsConfigType} from '../../checkIsConfigType';
 
 
 export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructorFunction: new (...args: any[]) => any,
@@ -165,8 +166,14 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return false;
       }
+      if (sourceObject.__state) {
+        Object.keys(sourceObject.__state).forEach((key) => {
+          this.__state[key] = this.__state[key] || {} as any;
+        });
+        this.__loadStateJSONObject(sourceObject.__state);
+      }
       Object.keys(sourceObject).forEach((key) => {
-        if (typeof this.__state[key] === 'undefined') {
+        if (key === '__state' || typeof this.__state[key] === 'undefined') {
           return;
         }
 
@@ -499,8 +506,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       }
 
 
-      opt.attachState = false; // do not cascade defaults, root already knows it.
-
       for (const key of Object.keys(this.__state)) {
         if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
           typeof this.__state[key].value === 'undefined' ||
@@ -516,14 +521,14 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
 
         // if ConfigClass type?
-        if (this.__state[key].isConfigType === true && this.__state[key].value) {
+        if (checkIsConfigType(this.__state[key].value)) { // check is config type dynamically
           ret[key] = this.__state[key].value.toJSON(opt);
           continue;
         }
 
         if (Array.isArray(this.__state[key].value)) {
           ret[key] = this.__state[key].value.map((v: any) => {
-            if (this.__state[key].isConfigArrayType === true) {
+            if (v?.toJSON) {
               return v.toJSON(opt);
             }
             return v;
@@ -542,6 +547,37 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
     __getFulName(property: string, separator = '.'): string {
       return (this.__propPath ? this.__propPath + '.' + property : property).replace(new RegExp('\\.', 'gm'), separator);
+    }
+
+    __isDefault(): boolean {
+      for (const property of Object.keys(this.__state)) {
+        if (!this.__isPropertyDefault(property)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    __isPropertyDefault(property: string): boolean {
+      if (!this.__state[property]) {
+        throw new Error('Unknown property "' + property + '"');
+      }
+      if (this.__state[property]?.value) {
+        if (this.__state[property].value.__isDefault) {
+          return this.__state[property].value.__isDefault();
+        }
+        if (Array.isArray(this.__state[property].value)) {
+          for (let i = 0; i < this.__state[property].value.length; ++i) {
+            if (this.__state[property].value[i].__isDefault && !this.__state[property].value[i].__isDefault()) {
+              return false;
+            } else if (this.__state[property].default?.[i] !== this.__state[property].value) {
+              return false;
+            }
+          }
+          return true;
+        }
+      }
+      return this.__state[property].default === this.__state[property].value;
     }
 
     __getLongestOptionName(printENVAlias: boolean): number {

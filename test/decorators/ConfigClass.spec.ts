@@ -6,8 +6,10 @@ import {TestHelper} from '../TestHelper';
 import {promises as fsp} from 'fs';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
-import {ConfigClassOptions} from '../../src/decorators/class/IConfigClass';
+import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
+import {WebConfigClassBuilder} from '../../web';
+import {GenericConfigType} from '../../src/GenericConfigType';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -626,6 +628,7 @@ describe('ConfigClass', () => {
       chai.expect(c.num).to.equal(1001);
       chai.expect(c.num2).to.equal(52);
     });
+
     it('should set sub-config through env', async () => {
 
       @SubConfigClass()
@@ -827,7 +830,185 @@ describe('ConfigClass', () => {
 
     });
 
+    describe('isDefault', () => {
+      it('should tell if value is not default', async () => {
+
+        @ConfigClass()
+        class C {
+          @ConfigProperty()
+          b: number = 3;
+        }
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        chai.expect(c.__isPropertyDefault('b')).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(true);
+        c.b = 10;
+        chai.expect(c.__isPropertyDefault('b')).to.deep.equal(false);
+        chai.expect(c.__isDefault()).to.deep.equal(false);
+      });
+
+
+      it('should tell if value is not default', async () => {
+
+        @SubConfigClass()
+        class Inner {
+          @ConfigProperty()
+          b: number = 3;
+        }
+
+        @SubConfigClass()
+        class Sub {
+          @ConfigProperty()
+          subNum: number = 3;
+
+          @ConfigProperty()
+          inner: unknown = {};
+        }
+
+        @SubConfigClass()
+        class MainConf {
+          @ConfigProperty()
+          a: number = 5;
+
+          @ConfigProperty({arrayType: Sub})
+          list: Sub[] = [];
+        }
+
+        @ConfigClass()
+        class C {
+          @ConfigProperty({type: MainConf})
+          main: IConfigClassPrivate<unknown> & MainConf = ConfigClassBuilder.attachPrivateInterface(new MainConf());
+        }
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        chai.expect(c.main.__isPropertyDefault('list')).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(true);
+        c.main.list.push(new Sub());
+        c.main.list[0].inner = new Inner();
+
+        chai.expect(c.main.__isPropertyDefault('list')).to.deep.equal(false);
+        chai.expect(c.main.__isPropertyDefault('a')).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(false);
+
+        chai.expect((c.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(true);
+        chai.expect((c.main.list[0] as any).__isDefault()).to.deep.equal(true);
+        (c.main.list[0].inner as Inner).b = 11;
+        chai.expect((c.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false);
+        chai.expect((c.main.list[0] as any).__isDefault()).to.deep.equal(false);
+      });
+
+      it('should tell if value is not default when loaded from json', async () => {
+
+        @SubConfigClass()
+        class Inner {
+          @ConfigProperty()
+          b: string = 'inner string';
+        }
+
+        @SubConfigClass()
+        class Sub {
+          @ConfigProperty()
+          subNum: number = 3;
+
+          @ConfigProperty({type: GenericConfigType})
+          inner: GenericConfigType;
+        }
+
+        @SubConfigClass()
+        class MainConf {
+          @ConfigProperty()
+          a: number = 5;
+
+          @ConfigProperty({arrayType: Sub})
+          list: Sub[] = [];
+        }
+
+        @ConfigClass()
+        class C {
+          @ConfigProperty({type: MainConf})
+          main: IConfigClassPrivate<null> & MainConf = ConfigClassBuilder.attachPrivateInterface(new MainConf());
+        }
+
+        @WebConfigClass()
+        class WC {
+          @ConfigProperty({type: MainConf})
+          main: IConfigClassPrivate<null> & MainConf = ConfigClassBuilder.attachPrivateInterface(new MainConf());
+        }
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        chai.expect(c.main.__isPropertyDefault('list')).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(true);
+        c.main.list.push(new Sub());
+        c.main.list[0].inner = new Inner();
+        (c.main.list[0].inner as Inner).b = 'new inner string';
+        const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
+        chai.expect(wc.__isDefault()).to.deep.equal(true);
+        wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+
+        chai.expect((wc.main.list[0] as any).__isPropertyDefault('subNum')).to.deep.equal(true);
+        chai.expect((wc.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false);
+        chai.expect((wc.main.list[0] as any).__isDefault()).to.deep.equal(false);
+        chai.expect((wc.main as any).__isDefault()).to.deep.equal(false);
+        chai.expect(wc.__isDefault()).to.deep.equal(false);
+      });
+
+      it('should tell if list value is not default when loaded from json', async () => {
+
+        @SubConfigClass()
+        class Inner {
+          @ConfigProperty()
+          b: string = 'inner string';
+        }
+
+        @SubConfigClass()
+        class Inner2 {
+          @ConfigProperty()
+          x: string = 'inner2 string';
+        }
+
+
+        @SubConfigClass()
+        class MainConf {
+          @ConfigProperty()
+          a: number = 5;
+
+          @ConfigProperty({arrayType: GenericConfigType})
+          list: GenericConfigType[] = [];
+        }
+
+        @ConfigClass()
+        class C {
+          @ConfigProperty({type: MainConf})
+          main: IConfigClassPrivate<null> & MainConf = ConfigClassBuilder.attachPrivateInterface(new MainConf());
+        }
+
+        @WebConfigClass()
+        class WC {
+          @ConfigProperty({type: MainConf})
+          main: IConfigClassPrivate<null> & MainConf = ConfigClassBuilder.attachPrivateInterface(new MainConf());
+        }
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        chai.expect(c.main.__isPropertyDefault('list')).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(true);
+        c.main.list.push(new Inner());
+        c.main.list.push(new Inner2());
+        (c.main.list[0] as Inner2).x = 'changed';
+        const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
+        chai.expect(c.__isDefault()).to.deep.equal(false);
+
+        chai.expect(wc.__isDefault()).to.deep.equal(true);
+        wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+        chai.expect(wc.__isDefault()).to.deep.equal(false);
+      });
+    });
+
   });
+
   describe('tags', () => {
 
     const cleanUp = () => {
@@ -934,6 +1115,65 @@ describe('ConfigClass', () => {
 
     });
 
+  });
+
+  describe('state', () => {
+
+
+    it('should set state and def of dynamically added class', async () => {
+
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty()
+        b: number = 3;
+      }
+
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        subNum: number = 3;
+
+        @ConfigProperty()
+        inner: unknown = {};
+      }
+
+      @SubConfigClass()
+      class MainConf {
+        @ConfigProperty()
+        a: number = 5;
+
+        @ConfigProperty({arrayType: Sub})
+        list: Sub[] = [];
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: MainConf})
+        main: MainConf = new MainConf();
+      }
+
+
+      @WebConfigClass()
+      class WC {
+        @ConfigProperty({type: MainConf})
+        main: MainConf = new MainConf();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+      c.main.list.push(new Sub());
+      c.main.list[0].inner = new Inner();
+      (c.main.list[0].inner as Inner).b = 11;
+
+      const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
+      chai.expect(c.toJSON({attachState: true})).to.not.deep.equal(wc.toJSON({attachState: true}));
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+      chai.expect(wc.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(wc.toJSON({attachState: true}))));
+      wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(wc.toJSON({attachState: true}));
+      chai.expect(wc.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(wc.toJSON({attachState: true}))));
+    });
   });
 
 });

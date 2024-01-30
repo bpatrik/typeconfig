@@ -64,4 +64,8 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any, TAGS> | any }): void;
 
   __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
+
+  __isDefault(): boolean;
+
+  __isPropertyDefault(property: string): boolean;
 }

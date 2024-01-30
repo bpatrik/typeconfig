@@ -1,5 +1,6 @@
 import {IPropertyMetadata, PropertyOptions} from './IPropertyState';
 import {Utils} from '../../Utils';
+import {checkIsConfigType} from '../checkIsConfigType';
 
 export function ConfigProperty<T, C, TAGS  = { [key: string]: any }>(options: PropertyOptions<T, C, TAGS> = {}) {
   return (target: any, property: string): any => {
@@ -40,9 +41,7 @@ export function ConfigProperty<T, C, TAGS  = { [key: string]: any }>(options: Pr
     if (isEnumArrayType) {
       state[property].isEnumArrayType = isEnumArrayType;
     }
-    const isConfigType = (<any>type).prototype
-      && typeof (<any>type).prototype.__loadJSONObject === 'function'
-      && typeof (<any>type).prototype.toJSON === 'function';
+    const isConfigType = checkIsConfigType((<any>type).prototype);
     if (isConfigType) {
       state[property].isConfigType = isConfigType;
     }
