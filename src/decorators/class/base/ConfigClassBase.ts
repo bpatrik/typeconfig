@@ -5,6 +5,7 @@ import {Utils} from '../../../Utils';
 import {SubClassOptions} from '../SubClassOptions';
 import {Loader} from '../../../Loader';
 import {checkIsConfigType} from '../../checkIsConfigType';
+import {ConfigProperty} from '../../property/ConfigPropoerty';
 
 
 export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructorFunction: new (...args: any[]) => any,
@@ -18,6 +19,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     __propPath = '';
     __created = false;
     __prototype = constructorFunction.prototype;
+    __unknownObjectType: unknown;
 
     constructor(...args: any[]) {
       super(...args);
@@ -166,12 +168,18 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return false;
       }
+      // if this sub object has a state then it is GenericConfigType
       if (sourceObject.__state) {
+        // prepare __state for this property
         Object.keys(sourceObject.__state).forEach((key) => {
-          this.__state[key] = this.__state[key] || {} as any;
+          if (typeof this.__state[key] === 'undefined') {
+            Object.defineProperty(this, key,
+              ConfigProperty({type: sourceObject.__state[key].type || this.__unknownObjectType || 'object'})(this, key));
+          }
         });
         this.__loadStateJSONObject(sourceObject.__state);
       }
+
       Object.keys(sourceObject).forEach((key) => {
         if (key === '__state' || typeof this.__state[key] === 'undefined') {
           return;
@@ -492,7 +500,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
               loadState(from.__state[key].default, to[key]);
             } else {
               const {
-                value, type, arrayType,
+                value,// type, arrayType,
                 typeBuilder, arrayTypeBuilder, onNewValue,
                 isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
                 constraint, envAlias, description, ...noValue
