@@ -39,7 +39,7 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
 
   __getENVAliases(): { key: string, alias: string }[];
 
-  __setParentConfig(propertyPath: string, rootConf: IConfigClassPrivateBase<TAGS>): void;
+  __setParentConfig(propertyPath: string, propertyName: string, rootConf: IConfigClassPrivateBase<TAGS>, parentConf: IConfigClassPrivateBase<TAGS>): void;
 
   __validateAll(exceptionStack?: string[]): void;
 
@@ -64,6 +64,14 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __loadStateJSONObject(sourceObject: { [key: string]: IPropertyMetadata<any, any, TAGS> | any }): void;
 
   __loadJSONObject(sourceObject: { [key: string]: any }): boolean;
+
+  __getHardDefault(): Record<PropertyKey, unknown>;
+
+  __getPropertyHardDefault(property: string): unknown;
+
+  __getDefault(): Record<PropertyKey, unknown>;
+
+  __getPropertyDefault(property: string): unknown;
 
   __isDefault(): boolean;
 

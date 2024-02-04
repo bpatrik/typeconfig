@@ -660,17 +660,17 @@ describe('ConfigClass', () => {
 
       }
 
-      process.env['default-sub-num'] = <any>1001;
+      process.env['default-sub-num'] = '1001'; // node converts it to string
       process.env['num'] = '995';
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5}, sub2: {num: 5}});
       await c.load();
       chai.expect(c.toJSON({attachState: true})).to.deep.equal(
         {
-          __state: {num: {default: 99, readonly: true}, sub: {num: {default: 1001}}, sub2: {num: {default: 5}}},
+          __state: {num: {default: 99, readonly: true}, sub: {num: {default: '1001'}}, sub2: {num: {default: 5}}},
           num: 995, sub: {num: 1001}, sub2: {num: 5}
         });
-      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 1001}, sub2: {num: 5}});
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: '1001'}, sub2: {num: 5}});
       chai.expect(c.sub.num).to.equal(1001);
       chai.expect(c.num).to.equal(995);
     });
@@ -711,7 +711,7 @@ describe('ConfigClass', () => {
 
       }
 
-      process.env['default-sub-subsub-myNum'] = <any>1001;
+      process.env['default-sub-subsub-myNum'] = '1001';
       process.env['num'] = '995';
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5, subsub: {myNum: 5}}, sub2: {num: 5, subsub: {myNum: 5}}});
@@ -720,12 +720,12 @@ describe('ConfigClass', () => {
         {
           __state: {
             num: {default: 99, readonly: true},
-            sub: {num: {default: 5}, subsub: {myNum: {default: 1001}}},
+            sub: {num: {default: 5}, subsub: {myNum: {default: '1001'}}},
             sub2: {num: {default: 5}, subsub: {myNum: {default: 5}}}
           },
           num: 995, sub: {num: 5, subsub: {myNum: 1001}}, sub2: {num: 5, subsub: {myNum: 5}}
         });
-      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5, subsub: {myNum: 1001}}, sub2: {num: 5, subsub: {myNum: 5}}});
+      chai.expect(c.__defaults).to.deep.equal({num: 99, sub: {num: 5, subsub: {myNum: '1001'}}, sub2: {num: 5, subsub: {myNum: 5}}});
       chai.expect(c.sub.subsub.myNum).to.equal(1001);
       chai.expect(c.num).to.equal(995);
     });
@@ -827,6 +827,56 @@ describe('ConfigClass', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
 
       chai.expect(c.__defaults).to.deep.equal({sub2: {num: 10}, sub: {arr: [{num: 11}]}});
+
+    });
+
+    it('should get hard default', async () => {
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          if (n) {
+            this.num = n;
+          }
+        }
+      }
+
+      @SubConfigClass()
+      class S {
+        @ConfigProperty()
+        s: string = 'text';
+
+        @ConfigProperty({arrayType: SA})
+        arr: (IConfigClassPrivate<unknown> & SA)[] = [new SA(11) as any, new SA() as any];
+      }
+
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: IConfigClassPrivate<unknown> & S = (new S()) as any;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+
+      chai.expect(c.sub.__getPropertyHardDefault('s')).to.deep.equal('text');
+      chai.expect(c.sub.arr[0].__getPropertyHardDefault('num')).to.deep.equal(11);
+      chai.expect(c.sub.arr[1].__getPropertyHardDefault('num')).to.deep.equal(5);
+      chai.expect(c.__getHardDefault()).to.deep.equal({
+        sub: {arr: [{num: 11}, {num: 5}], s: 'text'}
+      });
+      chai.expect(c.sub.__getHardDefault()).to.deep.equal({
+        arr: [{num: 11}, {num: 5}], s: 'text'
+      });
+
+      chai.expect(c.sub.arr[0].__getHardDefault()).to.deep.equal({
+        num: 11
+      });
 
     });
 
@@ -940,7 +990,7 @@ describe('ConfigClass', () => {
         const c = ConfigClassBuilder.attachPrivateInterface(new C());
         await c.load();
         chai.expect(c.main.__isPropertyDefault('list')).to.deep.equal(true);
-        chai.expect(c.__isDefault()).to.deep.equal(true);
+        chai.expect(c.__isDefault()).to.deep.equal(true, 'main is not default after loading');
         c.main.list.push(new Sub());
         c.main.list[0].inner = new Inner();
         (c.main.list[0].inner as Inner).b = 'new inner string';
@@ -948,9 +998,9 @@ describe('ConfigClass', () => {
         chai.expect(wc.__isDefault()).to.deep.equal(true);
         wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
 
-        chai.expect((wc.main.list[0] as any).__isPropertyDefault('subNum')).to.deep.equal(true);
-        chai.expect((wc.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false);
-        chai.expect((wc.main.list[0] as any).__isDefault()).to.deep.equal(false);
+        chai.expect((wc.main.list[0] as any).__isPropertyDefault('subNum')).to.deep.equal(true, 'wc.main.list[0].subNum');
+        chai.expect((wc.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false, 'wc.main.list[0].inner.b' + JSON.stringify((wc.main.list[0].inner as any).__getPropertyDefault('b')));
+        chai.expect((wc.main.list[0] as any).__isDefault()).to.deep.equal(false, 'wc.main.list');
         chai.expect((wc.main as any).__isDefault()).to.deep.equal(false);
         chai.expect(wc.__isDefault()).to.deep.equal(false);
       });
@@ -1118,6 +1168,91 @@ describe('ConfigClass', () => {
   });
 
   describe('state', () => {
+    it('should set state if cannot be infared', async () => {
+
+      @SubConfigClass()
+      class SubSub {
+        @ConfigProperty()
+        b: number = 3;
+      }
+
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        subNum: number = 3;
+
+        @ConfigProperty({type: GenericConfigType})
+        sub: GenericConfigType;
+      }
+
+      @SubConfigClass()
+      class MainConf {
+        @ConfigProperty()
+        a: number = 5;
+
+        @ConfigProperty({arrayType: Sub})
+        sub: Sub[] = [new Sub()];
+
+        @ConfigProperty({arrayType: GenericConfigType})
+        gen: GenericConfigType[] = [];
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: MainConf})
+        main: MainConf = new MainConf();
+      }
+
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+      c.main.gen.push(new Sub());
+      (c.main.gen[0] as Sub).sub = new SubSub();
+      c.main.sub.push(new Sub());
+      c.main.sub[0].sub = new SubSub();
+      (c.main.sub[0].sub as SubSub).b = 10;
+      c.main.sub[1].sub = new SubSub();
+      (c.main.sub[1].sub as SubSub).b = 20;
+
+      chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true})))).to.deep.equal(
+        {
+          __state: {
+            main: {
+              a: {default: 5}, gen: {default: []},
+              sub: {default: [{subNum: 3}]}
+            }
+          },
+          main: {
+            a: 5,
+            gen: [{
+              __state: {
+                sub: {b: {default: 3, type: 'float'}},
+                subNum: {default: 3, type: 'float'}
+              },
+              sub: {
+                __state: {b: {default: 3, type: 'float'}}, b: 3
+              },
+              subNum: 3
+            }],
+            sub: [{
+              __state: {
+                sub: {b: {default: 3, type: 'float'}},
+                subNum: {default: 3, type: 'float'}
+              },
+              sub: {__state: {b: {default: 3, type: 'float'}}, b: 10},
+              subNum: 3
+            }, {
+              __state: {
+                sub: {b: {default: 3, type: 'float'}},
+                subNum: {default: 3, type: 'float'}
+              },
+              sub: {__state: {b: {default: 3, type: 'float'}}, b: 20},
+              subNum: 3
+            }]
+          }
+        });
+    });
 
 
     it('should set state and def of dynamically added class', async () => {

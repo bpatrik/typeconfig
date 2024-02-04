@@ -42,6 +42,7 @@ describe('GenericConfigType', () => {
     c.loadSync();
     chai.expect(c.a).to.deep.equal(3);
     chai.expect(c.__isDefault()).to.deep.equal(true);
+
     c.inner = new Sub();
     chai.expect((c.inner as Sub).b).to.deep.equal('inner string');
 

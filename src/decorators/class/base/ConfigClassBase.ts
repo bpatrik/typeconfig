@@ -16,7 +16,9 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
   return class ConfigClassBaseType extends constructorFunction implements IConfigClassPrivateBase<TAGS> {
     __state: { [key: string]: IPropertyMetadata<any, any, TAGS> };
     __rootConfig: ConfigClassBaseType;
+    __parentConfig: ConfigClassBaseType;
     __propPath = '';
+    __propName = '';
     __created = false;
     __prototype = constructorFunction.prototype;
     __unknownObjectType: unknown;
@@ -158,6 +160,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           Loader.loadObject(this.__state[key].default, sourceObject[key]);
           return;
         }
+
         this.__state[key].default = sourceObject[key];
       });
     }
@@ -168,13 +171,18 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       if (sourceObject === null || typeof sourceObject === 'undefined') {
         return false;
       }
+
+
       // if this sub object has a state then it is GenericConfigType
-      if (sourceObject.__state) {
+      if (sourceObject.__state && !sourceObject.__prototype) {
         // prepare __state for this property
         Object.keys(sourceObject.__state).forEach((key) => {
+          // use known type (coming from the class def) if available
+          const type = this?.__state[key]?.type || sourceObject.__state[key].type || this.__unknownObjectType || 'object';
+
           if (typeof this.__state[key] === 'undefined') {
             Object.defineProperty(this, key,
-              ConfigProperty({type: sourceObject.__state[key].type || this.__unknownObjectType || 'object'})(this, key));
+              ConfigProperty({type: type})(this, key));
           }
         });
         this.__loadStateJSONObject(sourceObject.__state);
@@ -243,9 +251,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       return ret;
     }
 
-    __setParentConfig(propertyPath: string, rootConf: ConfigClassBaseType): void {
+    __setParentConfig(propertyPath: string, propName: string, rootConf: ConfigClassBaseType, parentConf: ConfigClassBaseType): void {
       this.__rootConfig = rootConf;
+      this.__parentConfig = parentConf;
       this.__propPath = propertyPath;
+      this.__propName = propName;
       for (const key of Object.keys(this.__state)) {
         if (this.__state[key].value === null ||
           typeof this.__state[key].value === 'undefined' ||
@@ -253,7 +263,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           continue;
         }
         const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + key) : key;
-        this.__state[key].value.__setParentConfig(propPath, this.__rootConfig);
+        this.__state[key].value.__setParentConfig(propPath, key, this.__rootConfig, this);
       }
     }
 
@@ -451,7 +461,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       if (isConfigType === true && !ConfigClassBaseType.isConfigClassBase(newValue)) {
         const o: ConfigClassBaseType = new (<any>type)();
         const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
-        o.__setParentConfig(propPath, this.__rootConfig);
+        o.__setParentConfig(propPath, property, this.__rootConfig, this);
         o.__loadJSONObject(newValue);
         return o;
       }
@@ -475,7 +485,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
     }
 
-    toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any } {
+    toJSON(opt?: ToJSONOptions<TAGS>, lazyAttach = false): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options, function (this: any, key: string, value: any) {
         if (!['path', 'fs', 'psPromise'].includes(key)) {
           return value;
@@ -485,32 +495,61 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
       // Attach __state
       if (opt.attachState === true) {
-        ret['__state'] = {};
-        const loadState = (from: ConfigClassBaseType, to: any) => {
+        const loadState = (from: ConfigClassBaseType): Record<string, unknown> => {
+          const retState: Record<string, unknown> = {};
           for (const key of Object.keys(from.__state)) {
             if (typeof from.__state[key] === 'undefined') {
               continue;
             }
-            to[key] = {};
             if (from.__state[key].value &&
               typeof from.__state[key].value.__state !== 'undefined') {
-              loadState(from.__state[key].value, to[key]);
+              const r = loadState(from.__state[key].value);
+              if (r) {
+                retState[key] = r;
+              }
             } else if (from.__state[key].default &&
               typeof from.__state[key].default.__state !== 'undefined') {
-              loadState(from.__state[key].default, to[key]);
+              const r = loadState(from.__state[key].default);
+              if (r) {
+                retState[key] = r;
+              }
             } else {
               const {
-                value,// type, arrayType,
+                value,
                 typeBuilder, arrayTypeBuilder, onNewValue,
                 isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
                 constraint, envAlias, description, ...noValue
               } = from.__state[key];
-              to[key] = noValue;
+
+
+              let knownState = false;
+              if (
+                // check if it's a standalone config.
+                // In that case we don't know if we need types, so lets just add them
+                !!from.__rootConfig &&
+                (!!from.__rootConfig && from.__rootConfig === from.__parentConfig ||
+                  (from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)[key]
+                  === from.__getPropertyHardDefault(key))) {
+
+                knownState = true;
+                delete noValue.type;
+                delete noValue.arrayType;
+              }
+              if (!lazyAttach || !knownState) {
+                retState[key] = noValue;
+              }
             }
           }
-
+          if (Object.keys(retState).length === 0) {
+            return null;
+          }
+          return retState;
         };
-        loadState(this, ret['__state']);
+
+        const rs = loadState(this);
+        if (rs) {
+          ret['__state'] = rs;
+        }
       }
 
 
@@ -530,14 +569,14 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         // if ConfigClass type?
         if (checkIsConfigType(this.__state[key].value)) { // check is config type dynamically
-          ret[key] = this.__state[key].value.toJSON(opt);
+          ret[key] = this.__state[key].value.toJSON(opt, true);
           continue;
         }
 
         if (Array.isArray(this.__state[key].value)) {
           ret[key] = this.__state[key].value.map((v: any) => {
             if (v?.toJSON) {
-              return v.toJSON(opt);
+              return v.toJSON(opt, true);
             }
             return v;
           });
@@ -556,6 +595,79 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     __getFulName(property: string, separator = '.'): string {
       return (this.__propPath ? this.__propPath + '.' + property : property).replace(new RegExp('\\.', 'gm'), separator);
     }
+
+
+    /**
+     * Hard default is the default from the implementation itself,
+     * before any default value override
+     */
+    __getHardDefault(): Record<PropertyKey, unknown> {
+      const m: Record<PropertyKey, unknown> = {};
+      Object.keys(this.__state).forEach(k => {
+        const d = this.__getPropertyHardDefault(k);
+        if (typeof d !== 'undefined') {
+          m[k] = this.__getPropertyHardDefault(k);
+        }
+      });
+      return m;
+    }
+
+    /**
+     * Hard default is the default from the implementation itself,
+     * before any default value override
+     */
+    __getPropertyHardDefault(property: string): unknown {
+      if (!this.__prototype.__state[property]) {
+        return;
+      }
+      if (this.__prototype.__state[property]?.value) {
+        if (this.__prototype.__state[property].value.__getDefault) {
+          return this.__state[property].value.__getHardDefault();
+        }
+        if (Array.isArray(this.__prototype.__state[property].value)) {
+          const a = [];
+          for (let i = 0; i < this.__prototype.__state[property].value.length; ++i) {
+            if (this.__prototype.__state[property].value[i].__getDefault) {
+              a.push(this.__state[property].value[i].__getHardDefault());
+            } else {
+              a.push(this.__prototype.__state[property].default?.[i]);
+            }
+          }
+          return a;
+        }
+      }
+      return this.__state[property].default;
+    }
+
+    __getDefault(): Record<PropertyKey, unknown> {
+      const m: Record<PropertyKey, unknown> = {};
+      Object.keys(this.__state).forEach(k => m[k] = this.__getPropertyDefault(k));
+      return m;
+    }
+
+    __getPropertyDefault(property: string): unknown {
+      if (!this.__state[property]) {
+        throw new Error('Unknown property "' + property + '"');
+      }
+      if (this.__state[property]?.value) {
+        if (this.__state[property].value.__getDefault) {
+          return this.__state[property].value.__getDefault();
+        }
+        if (Array.isArray(this.__state[property].value)) {
+          const a = [];
+          for (let i = 0; i < this.__state[property].value.length; ++i) {
+            if (this.__state[property].value[i].__getDefault) {
+              a.push(this.__state[property].value[i].__getDefault());
+            } else {
+              a.push(this.__state[property].default?.[i]);
+            }
+          }
+          return a;
+        }
+      }
+      return this.__state[property].default;
+    }
+
 
     __isDefault(): boolean {
       for (const property of Object.keys(this.__state)) {
