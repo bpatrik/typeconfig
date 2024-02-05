@@ -166,13 +166,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     }
 
 
-    __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false, skipValidation: boolean = false): boolean {
-      let changed = false;
-      if (sourceObject === null || typeof sourceObject === 'undefined') {
-        return false;
-      }
-
-
+    __populateGenericTypeFromState(sourceObject: { [key: string]: any }) {
       // if this sub object has a state then it is GenericConfigType
       if (sourceObject.__state && !sourceObject.__prototype) {
         // prepare __state for this property
@@ -183,10 +177,22 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           if (typeof this.__state[key] === 'undefined') {
             Object.defineProperty(this, key,
               ConfigProperty({type: type})(this, key));
+            if (typeof this[key] === 'undefined' &&
+              sourceObject?.__state?.[key]?.default) {
+              this[key] = sourceObject.__state[key].default;
+            }
           }
         });
         this.__loadStateJSONObject(sourceObject.__state);
       }
+    }
+
+    __loadJSONObject(sourceObject: { [key: string]: any }, setToReadonly: boolean = false, skipValidation: boolean = false): boolean {
+      let changed = false;
+      if (sourceObject === null || typeof sourceObject === 'undefined') {
+        return false;
+      }
+
 
       Object.keys(sourceObject).forEach((key) => {
         if (key === '__state' || typeof this.__state[key] === 'undefined') {
@@ -462,6 +468,9 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         const o: ConfigClassBaseType = new (<any>type)();
         const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
         o.__setParentConfig(propPath, property, this.__rootConfig, this);
+        if ((newValue as { __state: unknown }).__state) {
+          o.__populateGenericTypeFromState(newValue);
+        }
         o.__loadJSONObject(newValue);
         return o;
       }
@@ -501,6 +510,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
             if (typeof from.__state[key] === 'undefined') {
               continue;
             }
+
             if (from.__state[key].value &&
               typeof from.__state[key].value.__state !== 'undefined') {
               const r = loadState(from.__state[key].value);
@@ -528,8 +538,10 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                 // In that case we don't know if we need types, so lets just add them
                 !!from.__rootConfig &&
                 (!!from.__rootConfig && from.__rootConfig === from.__parentConfig ||
-                  (from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)[key]
-                  === from.__getPropertyHardDefault(key))) {
+                  ((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key] // maybe no deff value exist
+                    === from.__getPropertyHardDefault(key) &&
+                    // make sure that the state exists and the two values are not only the same as they both can't be fined
+                    !!from.__prototype.__state?.[key]))) {
 
                 knownState = true;
                 delete noValue.type;
@@ -554,13 +566,29 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
 
       for (const key of Object.keys(this.__state)) {
-        if ((this.__state[key].volatile === true && opt.attachVolatile !== true) ||
+        if (
+          // skip volatile
+          (this.__state[key].volatile === true && opt.attachVolatile !== true) ||
+          // skip if not set
           typeof this.__state[key].value === 'undefined' ||
+          // skip if tag as skip
           (opt.skipTags && this.__state[key].tags &&
             Object.keys(opt.skipTags).findIndex((k) => opt.skipTags[k] === this.__state[key].tags[k]) !== -1) ||
+          // skip if if not tag as skip
           (opt.keepTags && this.__state[key].tags &&
-            Object.keys(opt.keepTags).findIndex((k) => opt.keepTags[k] === this.__state[key].tags[k]) === -1)) {
+            Object.keys(opt.keepTags).findIndex((k) => opt.keepTags[k] === this.__state[key].tags[k]) === -1)
+        ) {
           continue;
+        }
+        // skip if default value
+        if (opt.skipDefaultValues) {
+          if (
+            (!this.__rootConfig || this.__rootConfig === this.__parentConfig ||
+              (this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)[key] === this.__state[key].value) && // root config
+            this.__getPropertyHardDefault(key) === this.__state[key].value &&
+            this.__getPropertyDefault(key) === this.__state[key].value) {
+            continue;
+          }
         }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
           ret['//[' + key + ']'] = this.__state[key].description;
@@ -617,7 +645,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
      * before any default value override
      */
     __getPropertyHardDefault(property: string): unknown {
-      if (!this.__prototype.__state[property]) {
+      if (!this.__prototype.__state?.[property]) { // default value can be undefined
         return;
       }
       if (this.__prototype.__state[property]?.value) {

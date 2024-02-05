@@ -10,6 +10,12 @@ export interface ToJSONOptions<TAGS extends { [key: string]: any }> {
    */
   attachVolatile?: boolean;
   enumsAsString?: boolean;
+
+  /**
+   * Do not attach default values.
+   * When reconstructing the config, the loader already knows the value
+   */
+  skipDefaultValues?: boolean;
   /**
    Skips properties with the following tags. If a tag is bot kept and skipped, it will be skipped.
    */

@@ -24,6 +24,7 @@ export interface ConfigClassOptions<C, TAGS = { [key: string]: any }> extends Co
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
   enumsAsString?: boolean;
+  skipDefaultValues?: boolean;
   attachState?: boolean;
   disableMan?: boolean;
   exitOnConfig?: boolean;

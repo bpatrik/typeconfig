@@ -11,6 +11,7 @@ export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {
   rewriteCLIConfig?: boolean;
   rewriteENVConfig?: boolean;
   enumsAsString?: boolean;
+  skipDefaultValues?: boolean;
   /**
    * Attaches property state (tags, default values) to JSON
    */

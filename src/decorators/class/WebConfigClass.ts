@@ -7,6 +7,7 @@ export interface WebConfigClassOptions<TAGS extends { [key: string]: any }> exte
   attachDescription?: boolean;
   attachState?: boolean;
   enumsAsString?: boolean;
+  skipDefaultValues?: boolean;
   loadQueryOptions?: boolean; // parses the query string and sets the to the config
   /**
    * tracks readonly property, but do not use it for validation

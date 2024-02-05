@@ -4,6 +4,7 @@ export interface SubClassOptions<TAGS> extends ToJSONOptions<TAGS> {
   attachDescription?: boolean;
   attachState?: boolean;
   enumsAsString?: boolean;
+  skipDefaultValues?: boolean;
   /**
    * If a property is set through cli or env variable, it becomes readonly
    */

@@ -113,6 +113,156 @@ describe('ConfigClass', () => {
     chai.expect(c.toJSON({attachVolatile: true})).to.deep.equal({num: 5, num2: 50});
   });
 
+
+  it('should JSON skip default values should not change value', () => {
+
+    @SubConfigClass()
+    class SubSub {
+      @ConfigProperty()
+      b: number = 3;
+    }
+
+
+    @SubConfigClass()
+    class Sub {
+      @ConfigProperty()
+      subNum: number = 3;
+
+      @ConfigProperty({type: GenericConfigType})
+      subsub: GenericConfigType;
+    }
+
+    @SubConfigClass()
+    class MainConf {
+      @ConfigProperty()
+      a: number = 5;
+
+      @ConfigProperty({arrayType: Sub})
+      subArr: Sub[] = [new Sub()];
+
+      @ConfigProperty({arrayType: GenericConfigType})
+      genArr: GenericConfigType[] = [];
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({type: MainConf})
+      main: MainConf = new MainConf();
+    }
+
+
+    @WebConfigClass()
+    class WC {
+      @ConfigProperty({type: MainConf})
+      main: MainConf = new MainConf();
+    }
+
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.loadSync();
+    c.main.genArr.push(new Sub());
+    (c.main.genArr[0] as Sub).subsub = new SubSub();
+    ((c.main.genArr[0] as Sub).subsub as SubSub).b = 13;
+    c.main.subArr.push(new Sub());
+    c.main.subArr[0].subsub = new SubSub();
+    (c.main.subArr[0].subsub as SubSub).b = 10;
+    c.main.subArr[1].subsub = new SubSub();
+    (c.main.subArr[1].subsub as SubSub).b = 20;
+    const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
+
+    wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
+    console.log(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}),null,4));
+
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.deep.equal(
+      JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+  });
+  it('should JSON skip default values ', () => {
+
+    @SubConfigClass()
+    class SubSub {
+      @ConfigProperty()
+      b: number = 3;
+    }
+
+
+    @SubConfigClass()
+    class Sub {
+      @ConfigProperty()
+      subNum: number = 3;
+
+      @ConfigProperty({type: GenericConfigType})
+      sub: GenericConfigType;
+    }
+
+    @SubConfigClass()
+    class MainConf {
+      @ConfigProperty()
+      a: number = 5;
+
+      @ConfigProperty({arrayType: Sub})
+      sub: Sub[] = [new Sub()];
+
+      @ConfigProperty({arrayType: GenericConfigType})
+      gen: GenericConfigType[] = [];
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({type: MainConf})
+      main: MainConf = new MainConf();
+    }
+
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.loadSync();
+    c.main.gen.push(new Sub());
+    (c.main.gen[0] as Sub).sub = new SubSub();
+    ((c.main.gen[0] as Sub).sub as SubSub).b = 13;
+    c.main.sub.push(new Sub());
+    c.main.sub[0].sub = new SubSub();
+    (c.main.sub[0].sub as SubSub).b = 10;
+    c.main.sub[1].sub = new SubSub();
+    (c.main.sub[1].sub as SubSub).b = 20;
+
+    // TODO: this is not the best implemetnation
+    chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to.deep.equal(
+      {
+        __state: {
+          main: {
+            a: {
+              default: 5 //TODO: this should not be part of this
+            },
+            gen: {default: []},
+            sub: {default: [{subNum: 3}]}
+          }
+        },
+        main: {
+          gen: [{
+            __state: {
+              sub: {b: {default: 3, type: 'float'}},
+              subNum: {default: 3, type: 'float'}
+            },
+            sub: {
+              __state: {b: {default: 3, type: 'float'}}, b: 13
+            }
+          }],
+          sub: [{
+            __state: {
+              sub: {b: {default: 3, type: 'float'}},
+              subNum: {default: 3, type: 'float'}
+            },
+            sub: {__state: {b: {default: 3, type: 'float'}}, b: 10}
+          }, {
+            __state: {
+              sub: {b: {default: 3, type: 'float'}},
+              subNum: {default: 3, type: 'float'}
+            },
+            sub: {__state: {b: {default: 3, type: 'float'}}, b: 20}
+          }]
+        }
+      });
+  });
+
   describe('man page', () => {
 
     it('should print default override options', () => {
