@@ -11,6 +11,7 @@ test/
 tslint.json
 tsconfig.json
 .editorconfig
+.nyc_output/
 coverage/
 tmp_test/
 mock*
