@@ -171,7 +171,6 @@ describe('ConfigClass', () => {
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
 
     wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
-    console.log(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}),null,4));
 
     chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.deep.equal(
       JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));

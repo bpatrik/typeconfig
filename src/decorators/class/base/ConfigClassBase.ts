@@ -134,6 +134,12 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         if (sourceObject[key].volatile) {
           this.__state[key].volatile = sourceObject[key].volatile;
         }
+        if (sourceObject[key].tags && !this.__state[key].tags) {
+          this.__state[key].tags = sourceObject[key].tags;
+        }
+        if (sourceObject[key].description && !this.__state[key].description) {
+          this.__state[key].description = sourceObject[key].description;
+        }
       });
     }
 
@@ -524,12 +530,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                 retState[key] = r;
               }
             } else {
-              const {
-                value,
-                typeBuilder, arrayTypeBuilder, onNewValue,
-                isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
-                constraint, envAlias, description, ...noValue
-              } = from.__state[key];
 
 
               let knownState = false;
@@ -538,17 +538,32 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                 // In that case we don't know if we need types, so lets just add them
                 !!from.__rootConfig &&
                 (!!from.__rootConfig && from.__rootConfig === from.__parentConfig ||
-                  ((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key] // maybe no deff value exist
+                  ((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key] // maybe no def. value exist
                     === from.__getPropertyHardDefault(key) &&
                     // make sure that the state exists and the two values are not only the same as they both can't be fined
                     !!from.__prototype.__state?.[key]))) {
 
                 knownState = true;
-                delete noValue.type;
-                delete noValue.arrayType;
               }
               if (!lazyAttach || !knownState) {
-                retState[key] = noValue;
+                if (knownState) {
+                  const {
+                    value, type, arrayType, tags,
+                    description, max, min, volatile,
+                    typeBuilder, arrayTypeBuilder, onNewValue,
+                    isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
+                    constraint, envAlias, ...noValue
+                  } = from.__state[key];
+                  retState[key] = noValue;
+                } else {
+                  const {
+                    value,
+                    typeBuilder, arrayTypeBuilder, onNewValue,
+                    isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
+                    constraint, envAlias, ...noValue
+                  } = from.__state[key];
+                  retState[key] = noValue;
+                }
               }
             }
           }
@@ -584,7 +599,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         if (opt.skipDefaultValues) {
           if (
             (!this.__rootConfig || this.__rootConfig === this.__parentConfig ||
-              (this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)[key] === this.__state[key].value) && // root config
+              (this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)[key] ===
+              this.__state[key].value) && // root config
             this.__getPropertyHardDefault(key) === this.__state[key].value &&
             this.__getPropertyDefault(key) === this.__state[key].value) {
             continue;

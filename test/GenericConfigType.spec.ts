@@ -111,7 +111,12 @@ describe('GenericConfigType', () => {
 
     @SubConfigClass()
     class SubSub {
-      @ConfigProperty()
+      @ConfigProperty({
+        tags: {
+          testTag: 'my value'
+        },
+        description: 'just a description'
+      })
       c: string = 'SubSub string';
     }
 
@@ -160,6 +165,12 @@ describe('GenericConfigType', () => {
     chai.expect((wc.inner as any).subSub.__state['c'].value).to.deep.equal('test2');
     chai.expect((wc.inner as any).subSub.c).to.deep.equal('test2');
     chai.expect((wc.inner as any).subSub.__isDefault()).to.deep.equal(false);
+
+    chai.expect((wc.inner as any).subSub.__state['c'].tags).to.deep.equal({
+        testTag: 'my value'
+      }
+    );
+    chai.expect((wc.inner as any).subSub.__state['c'].description).to.deep.equal('just a description');
   });
 
 });
