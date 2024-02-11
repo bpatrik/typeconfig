@@ -134,11 +134,12 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         if (sourceObject[key].volatile) {
           this.__state[key].volatile = sourceObject[key].volatile;
         }
-        if (sourceObject[key].tags && !this.__state[key].tags) {
-          this.__state[key].tags = sourceObject[key].tags;
+
+        if (sourceObject[key].tags) {
+          this.__state[key].tags = this.__state[key].tags || sourceObject[key].tags;
         }
-        if (sourceObject[key].description && !this.__state[key].description) {
-          this.__state[key].description = sourceObject[key].description;
+        if (sourceObject[key].description) {
+          this.__state[key].description = this.__state[key].description || sourceObject[key].description;
         }
       });
     }
@@ -533,15 +534,18 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
 
               let knownState = false;
+            //  console.log(key, from?.__prototype?.__state?.[key], from?.__getPropertyHardDefault && from?.__getPropertyHardDefault(key));
               if (
                 // check if it's a standalone config.
                 // In that case we don't know if we need types, so lets just add them
                 !!from.__rootConfig &&
-                (!!from.__rootConfig && from.__rootConfig === from.__parentConfig ||
-                  ((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key] // maybe no def. value exist
-                    === from.__getPropertyHardDefault(key) &&
-                    // make sure that the state exists and the two values are not only the same as they both can't be fined
-                    !!from.__prototype.__state?.[key]))) {
+                (from.__rootConfig === from.__parentConfig ||
+                  // maybe no def. value exist
+                  (// make sure that the state exists and the two values are not only the same as they both can't be fined
+                    typeof from.__prototype.__state?.[key] !== 'undefined' &&
+                    (from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key]
+                    === from.__getPropertyHardDefault(key)
+                  ))) {
 
                 knownState = true;
               }

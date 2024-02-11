@@ -36,6 +36,7 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __state: { [key: string]: IPropertyMetadata<any, any, TAGS> };
   __defaults: { [key: string]: any };
   __rootConfig: IConfigClassPrivateBase<TAGS>;
+  __parentConfig: IConfigClassPrivateBase<TAGS>;
   __propPath: string;
   __options: SubClassOptions<TAGS>;
 

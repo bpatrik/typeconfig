@@ -2,7 +2,7 @@ import {IPropertyMetadata, PropertyOptions} from './IPropertyState';
 import {Utils} from '../../Utils';
 import {checkIsConfigType} from '../checkIsConfigType';
 
-export function ConfigProperty<T, C, TAGS  = { [key: string]: any }>(options: PropertyOptions<T, C, TAGS> = {}) {
+export function ConfigProperty<T, C, TAGS = { [key: string]: any }>(options: PropertyOptions<T, C, TAGS> = {}) {
   return (target: any, property: string): any => {
     let type = options.type;
     if (typeof type === 'undefined') {

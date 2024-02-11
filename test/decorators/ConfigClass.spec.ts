@@ -10,6 +10,7 @@ import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/clas
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 import {WebConfigClassBuilder} from '../../web';
 import {GenericConfigType} from '../../src/GenericConfigType';
+import {IWebConfigClassPrivate} from '../../src/decorators/class/IWebConfigClass';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -1148,7 +1149,8 @@ describe('ConfigClass', () => {
         wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
 
         chai.expect((wc.main.list[0] as any).__isPropertyDefault('subNum')).to.deep.equal(true, 'wc.main.list[0].subNum');
-        chai.expect((wc.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false, 'wc.main.list[0].inner.b' + JSON.stringify((wc.main.list[0].inner as any).__getPropertyDefault('b')));
+        chai.expect((wc.main.list[0].inner as any).__isPropertyDefault('b')).to.deep.equal(false, 'wc.main.list[0].inner.b'
+          + JSON.stringify((wc.main.list[0].inner as any).__getPropertyDefault('b')));
         chai.expect((wc.main.list[0] as any).__isDefault()).to.deep.equal(false, 'wc.main.list');
         chai.expect((wc.main as any).__isDefault()).to.deep.equal(false);
         chai.expect(wc.__isDefault()).to.deep.equal(false);
@@ -1266,6 +1268,109 @@ describe('ConfigClass', () => {
       chai.expect(c.__state.sub.value.__state.subNum.tags).to.deep.equal({'inner-sub': true});
     });
 
+
+    it('should load tags to sub class', async () => {
+
+      @SubConfigClass({tags: {'inner-sub': true}})
+      class SubSub {
+        @ConfigProperty({
+          tags: {
+            testTag: 'my value'
+          },
+          description: 'just a description'
+        })
+        c: string = 'SubSub string';
+      }
+
+
+      @SubConfigClass({
+        tags: {
+          subtag: 'testclass'
+        }
+      })
+      class Sub {
+        @ConfigProperty({
+          tags: {
+            btag: 'test'
+          }
+        })
+        b: string = 'Sub string';
+
+        @ConfigProperty({type: GenericConfigType, tags: {gentype: true}})
+        subSub: GenericConfigType;
+      }
+
+      @ConfigClass()
+      class C {
+
+        @ConfigProperty()
+        a: number = 3;
+
+        @ConfigProperty({type: GenericConfigType})
+        inner: GenericConfigType;
+      }
+
+
+      @WebConfigClass()
+      class WC {
+        @ConfigProperty()
+        a: number = 3;
+
+        @ConfigProperty({type: GenericConfigType})
+        inner: GenericConfigType;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+      c.inner = new Sub();
+      c.a = 10;
+      (c.inner as Sub).b = 'test';
+      (c.inner as Sub).subSub = new SubSub();
+      ((c.inner as Sub).subSub as SubSub).c = 'test2';
+      const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
+      wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+      const wcClone = WebConfigClassBuilder.attachPrivateInterface(wc.clone<WC>());
+
+
+      chai.expect(JSON.parse(JSON.stringify(wc.clone().toJSON({attachState: true})))).to.deep
+        .equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+      chai.expect(((c.inner as Sub).subSub as any).__state['c'].tags).to.deep
+        .equal({
+          'inner-sub': true,
+          testTag: 'my value'
+        });
+      chai.expect(((wc.inner as Sub).subSub as any).__state['c'].tags).to.deep
+        .equal({
+          'inner-sub': true,
+          testTag: 'my value'
+        });
+      chai.expect(((wcClone.inner as Sub).subSub as any).__state['c'].tags).to.deep
+        .equal({
+          'inner-sub': true,
+          testTag: 'my value'
+        });
+
+
+      chai.expect((c.inner as any).__state['b'].tags).to.deep
+        .equal({
+          'subtag': 'testclass',
+          btag: 'test'
+        });
+      chai.expect((wc.inner as any).__state['b'].tags).to.deep
+        .equal({
+          'subtag': 'testclass',
+          btag: 'test'
+        });
+      chai.expect((wcClone.inner as any).__state['b'].tags).to.deep
+        .equal({
+          'subtag': 'testclass',
+          btag: 'test'
+        });
+      chai.expect(JSON.parse(JSON.stringify(wcClone.toJSON({attachState: true})))).to.deep
+        .equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+      chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.deep
+        .equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+    });
 
     it('should skip', async () => {
 
@@ -1455,7 +1560,7 @@ describe('ConfigClass', () => {
       chai.expect(c.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
       chai.expect(wc.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(wc.toJSON({attachState: true}))));
       wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
-      chai.expect(c.toJSON({attachState: true})).to.deep.equal(wc.toJSON({attachState: true}));
+      chai.expect(wc.toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
       chai.expect(wc.toJSON({attachState: true})).to.deep.equal(JSON.parse(JSON.stringify(wc.toJSON({attachState: true}))));
     });
   });

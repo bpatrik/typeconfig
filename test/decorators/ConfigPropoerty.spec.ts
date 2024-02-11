@@ -6,6 +6,7 @@ import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
 import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
 import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
+import {GenericConfigType} from '../../src/GenericConfigType';
 
 const chai: any = require('chai');
 
@@ -1250,61 +1251,90 @@ describe('ConfigProperty', () => {
 
     });
   });
-  describe('on new value', () => {
-
-    it('should call function', async () => {
-      @ConfigClass()
-      class C {
-        @ConfigProperty({
-          onNewValue: () => {
-            throw new Error('called');
-          }
-        })
-        num: number = 5;
-      }
 
 
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(() => {
-        c.num = 10;
-      }).to.throw(Error, 'called');
+  it('should set root and parent config', async () => {
 
-    });
+    @SubConfigClass()
+    class S {
 
-    it('should access config', async () => {
+      @ConfigProperty({envAlias: 'numAlias'})
+      num: number = 5;
 
+    }
 
-      @SubConfigClass()
-      class S {
+    @ConfigClass()
+    class C {
+      @ConfigProperty({type: GenericConfigType})
+      sub: GenericConfigType;
+    }
 
-        @ConfigProperty({
-          onNewValue: (v, cnf: C) => {
-            cnf.a++;
-          }
-        })
-        num: number = 5;
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.sub = new S();
+    chai.expect(ConfigClassBuilder.attachPrivateInterface(c.sub).__rootConfig).to.deep.equal(c);
+    chai.expect(ConfigClassBuilder.attachPrivateInterface(c.sub).__parentConfig).to.deep.equal(c);
+    await c.load();
+    chai.expect(ConfigClassBuilder.attachPrivateInterface(c.sub).__rootConfig).to.deep.equal(c);
+    chai.expect(ConfigClassBuilder.attachPrivateInterface(c.sub).__parentConfig).to.deep.equal(c);
 
-      }
-
-      @ConfigClass()
-      class C {
-        @ConfigProperty()
-        sub: S = new S();
-
-        @ConfigProperty()
-        a: number = 10;
-      }
-
-
-      const c = ConfigClassBuilder.attachPrivateInterface(new C());
-      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}, a: 10});
-      c.sub.num = 10;
-      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
-      c.sub.num = 10;
-      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
-      c.sub.num = 8;
-      chai.expect(c.toJSON()).to.deep.equal({sub: {num: 8}, a: 12});
-
-    });
   });
 });
+describe('on new value', () => {
+
+  it('should call function', async () => {
+    @ConfigClass()
+    class C {
+      @ConfigProperty({
+        onNewValue: () => {
+          throw new Error('called');
+        }
+      })
+      num: number = 5;
+    }
+
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(() => {
+      c.num = 10;
+    }).to.throw(Error, 'called');
+
+  });
+
+  it('should access config', async () => {
+
+
+    @SubConfigClass()
+    class S {
+
+      @ConfigProperty({
+        onNewValue: (v, cnf: C) => {
+          cnf.a++;
+        }
+      })
+      num: number = 5;
+
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty()
+      sub: S = new S();
+
+      @ConfigProperty()
+      a: number = 10;
+    }
+
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.toJSON()).to.deep.equal({sub: {num: 5}, a: 10});
+    c.sub.num = 10;
+    chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
+    c.sub.num = 10;
+    chai.expect(c.toJSON()).to.deep.equal({sub: {num: 10}, a: 11});
+    c.sub.num = 8;
+    chai.expect(c.toJSON()).to.deep.equal({sub: {num: 8}, a: 12});
+
+  });
+});
+})
+;
