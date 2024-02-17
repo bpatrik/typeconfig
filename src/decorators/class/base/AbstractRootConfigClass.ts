@@ -45,7 +45,7 @@ export function AbstractRootConfigClass<TAGS>(constructorFunction: new (...args:
     constructor(...args: any[]) {
       super(...args);
 
-      this.__setParentConfig('', '', this, this);
+      this.__setParentConfig('', '', this, null);
       const exceptionStack: string[] = [];
       this.__rootConfig.__validateAll(exceptionStack);
       if (exceptionStack.length > 0) {

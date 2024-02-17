@@ -10,7 +10,6 @@ import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/clas
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 import {WebConfigClassBuilder} from '../../web';
 import {GenericConfigType} from '../../src/GenericConfigType';
-import {IWebConfigClassPrivate} from '../../src/decorators/class/IWebConfigClass';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -224,7 +223,9 @@ describe('ConfigClass', () => {
     c.main.sub[1].sub = new SubSub();
     (c.main.sub[1].sub as SubSub).b = 20;
 
-    // TODO: this is not the best implemetnation
+    chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to
+      .deep.equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+    // TODO: this is not the best implementation
     chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to.deep.equal(
       {
         __state: {
@@ -244,20 +245,23 @@ describe('ConfigClass', () => {
             },
             sub: {
               __state: {b: {default: 3, type: 'float'}}, b: 13
-            }
+            },
+            subNum: 3
           }],
           sub: [{
             __state: {
               sub: {b: {default: 3, type: 'float'}},
               subNum: {default: 3, type: 'float'}
             },
-            sub: {__state: {b: {default: 3, type: 'float'}}, b: 10}
+            sub: {__state: {b: {default: 3, type: 'float'}}, b: 10},
+            subNum: 3
           }, {
             __state: {
               sub: {b: {default: 3, type: 'float'}},
               subNum: {default: 3, type: 'float'}
             },
-            sub: {__state: {b: {default: 3, type: 'float'}}, b: 20}
+            sub: {__state: {b: {default: 3, type: 'float'}}, b: 20},
+            subNum: 3
           }]
         }
       });
@@ -1422,7 +1426,7 @@ describe('ConfigClass', () => {
   });
 
   describe('state', () => {
-    it('should set state if cannot be infared', async () => {
+    it('should set state if cannot be inferred', async () => {
 
       @SubConfigClass()
       class SubSub {

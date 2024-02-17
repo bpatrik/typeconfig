@@ -46,7 +46,8 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
 
   __getENVAliases(): { key: string, alias: string }[];
 
-  __setParentConfig(propertyPath: string, propertyName: string, rootConf: IConfigClassPrivateBase<TAGS>, parentConf: IConfigClassPrivateBase<TAGS>): void;
+  __setParentConfig(propertyPath: string, propertyName: string, rootConf: IConfigClassPrivateBase<TAGS>,
+                    parentConf: IConfigClassPrivateBase<TAGS>): void;
 
   __validateAll(exceptionStack?: string[]): void;
 

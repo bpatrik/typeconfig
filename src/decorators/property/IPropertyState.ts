@@ -75,6 +75,8 @@ export interface PropertyOptions<T, C, TAGS extends { [key: string]: any }> {
 export interface IPropertyMetadata<T, C, TAGS extends { [key: string]: any }> extends PropertyOptions<T, C, TAGS> {
   value: T;
   default: T;
+  // not overridable
+  hardDefault: T;
   tags?: TAGS;
 
   min?: number;

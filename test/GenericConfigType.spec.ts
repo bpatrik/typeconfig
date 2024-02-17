@@ -98,10 +98,10 @@ describe('GenericConfigType', () => {
     (c.inner as Sub).b = 'test';
 
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
-
+    console.log(JSON.stringify(c.toJSON({attachState: true}),null,4));
     wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
     chai.expect(wc.__state['a'].value).to.deep.equal(10);
-    chai.expect((wc.inner as any).__state['b'].value).to.deep.equal('test');
+    chai.expect((wc.inner as any).__state['b']?.value).to.deep.equal('test');
     chai.expect((wc.inner as any).b).to.deep.equal('test');
   });
 

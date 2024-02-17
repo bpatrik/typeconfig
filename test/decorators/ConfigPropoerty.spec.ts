@@ -729,10 +729,10 @@ describe('ConfigProperty', () => {
       readonly type: string = 't1';
 
       @ConfigProperty()
-      num: number = 5;
+      num1: number = 5;
 
       constructor(n: number = 5) {
-        this.num = n;
+        this.num1 = n;
       }
     }
 
@@ -742,10 +742,10 @@ describe('ConfigProperty', () => {
       readonly type: string = 't2';
 
       @ConfigProperty()
-      num: number = 5;
+      num2: number = 5;
 
       constructor(n: number = 5) {
-        this.num = n;
+        this.num2 = n;
       }
     }
 
@@ -758,7 +758,7 @@ describe('ConfigProperty', () => {
       })
       t: T1 | T2 = new T1();
 
-      constructor(n = new T1()) {
+      constructor(n: T1 | T2 = new T1()) {
         this.t = n;
       }
     }
@@ -771,11 +771,13 @@ describe('ConfigProperty', () => {
     }
 
     const c = ConfigClassBuilder.attachPrivateInterface(new C());
-    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't2', num: 2}}]});
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num1: 1}}, {t: {type: 't2', num2: 2}}]});
     c.arr.push(new Sub(new T1(3)));
-    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't2', num: 2}}, {t: {type: 't1', num: 3}}]});
-    c.arr[1].t = new T1(99);
-    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num: 1}}, {t: {type: 't1', num: 99}}, {t: {type: 't1', num: 3}}]});
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num1: 1}}, {t: {type: 't2', num2: 2}}, {t: {type: 't1', num1: 3}}]});
+    const nv = new T1(99);
+    console.log('--------new value---------');
+    c.arr[1].t = nv;
+    chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num1: 1}}, {t: {type: 't1', num1: 99}}, {t: {type: 't1', num1: 3}}]});
   });
 
 
@@ -1336,5 +1338,3 @@ describe('on new value', () => {
 
   });
 });
-})
-;

@@ -48,15 +48,19 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           continue;
         }
         this.__state[key].default = this.__state[key].value;
+        this.__state[key].hardDefault = this.__state[key].value;
         if (this.__state[key].value) {
           if (typeof this.__state[key].value.__defaults !== 'undefined') {
             this.__state[key].default = this.__state[key].value.__defaults;
+            this.__state[key].hardDefault = this.__state[key].value.__defaults;
           } else {
             // defaults should only be plain jsons, no config classes
             if (this.__state[key].value.toJSON) {
               this.__state[key].default = this.__state[key].value.toJSON();
+              this.__state[key].hardDefault = this.__state[key].value.toJSON();
             } else {
               this.__state[key].default = JSON.parse(JSON.stringify(this.__state[key].value));
+              this.__state[key].hardDefault = JSON.parse(JSON.stringify(this.__state[key].value));
             }
           }
         }
@@ -364,6 +368,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                         type?: propertyTypes,
                         isEnumType?: boolean, isConfigType?: boolean
                       }): any {
+
       if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
@@ -373,6 +378,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           propState.type);
       const isEnumType = typeof _typeState !== 'undefined' ? _typeState.isEnumType : propState.isEnumType;
       const isConfigType = typeof _typeState !== 'undefined' ? _typeState.isConfigType : propState.isConfigType;
+
 
       const strValue = String(newValue);
       let floatValue = NaN;
@@ -465,24 +471,31 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         throw new TypeError(this.__getFulName(property) + ' should be an Enum from values: ' + Object.keys(type) + ', got: ' + newValue);
       }
 
-      if (isConfigType === true && propState.value &&
-        typeof propState.value.__loadJSONObject !== 'undefined') {
-        propState.value.__loadJSONObject(newValue);
-        return propState.value;
-      }
+      if (isConfigType === true) {
 
-      if (isConfigType === true && !ConfigClassBaseType.isConfigClassBase(newValue)) {
-        const o: ConfigClassBaseType = new (<any>type)();
-        const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
-        o.__setParentConfig(propPath, property, this.__rootConfig, this);
-        if ((newValue as { __state: unknown }).__state) {
-          o.__populateGenericTypeFromState(newValue);
+        if (propState && propState.value &&
+          (!propState.typeBuilder || propState.typeBuilder(propState.value) === type) &&
+          typeof propState.value.__loadJSONObject !== 'undefined') {
+          propState.value.__loadJSONObject(newValue);
+          return propState.value;
         }
-        o.__loadJSONObject(newValue);
-        return o;
+
+        if (!ConfigClassBaseType.isConfigClassBase(newValue)) {
+          const o: ConfigClassBaseType = new (<any>type)();
+          const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
+          o.__setParentConfig(propPath, property, this.__rootConfig, this);
+          if ((newValue as { __state: unknown }).__state) {
+            o.__populateGenericTypeFromState(newValue);
+          }
+          o.__loadJSONObject(newValue);
+          return o;
+        }
+        // if the default value of a ConfigObject is undefined root and parent will be never set
+        if (!(newValue as ConfigClassBaseType).__rootConfig && (newValue as ConfigClassBaseType).__setParentConfig) {
+          const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
+          (newValue as ConfigClassBaseType).__setParentConfig(propPath, property, this.__rootConfig, this);
+        }
       }
-
-
       return newValue;
     }
 
@@ -534,21 +547,34 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
 
               let knownState = false;
-            //  console.log(key, from?.__prototype?.__state?.[key], from?.__getPropertyHardDefault && from?.__getPropertyHardDefault(key));
+
+              const isRootConfig = (!!from.__rootConfig && from.__parentConfig === null);
+              const parentKnowsSameDef =
+                // maybe no def. value exist
+                // make sure that the state exists and the two values are not only the same as they both can't be fined
+                from.__parentConfig &&
+                typeof from.__prototype.__state?.[key] !== 'undefined' &&
+                JSON.stringify((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key])
+                === JSON.stringify(from.__getPropertyHardDefault(key));
+
               if (
                 // check if it's a standalone config.
                 // In that case we don't know if we need types, so lets just add them
-                !!from.__rootConfig &&
-                (from.__rootConfig === from.__parentConfig ||
-                  // maybe no def. value exist
-                  (// make sure that the state exists and the two values are not only the same as they both can't be fined
-                    typeof from.__prototype.__state?.[key] !== 'undefined' &&
-                    (from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key]
-                    === from.__getPropertyHardDefault(key)
+                //  !!from.__rootConfig &&
+
+                (isRootConfig ||
+                  (
+                    parentKnowsSameDef
                   ))) {
 
                 knownState = true;
               }
+              console.log(this.__propPath, key,
+                '\n\t parent:', from?.__parentConfig?.__getPropertyHardDefault(from.__propName),
+                '\n\tparentdef:', (from?.__parentConfig?.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key],
+                '\n\tselfdef  :', from?.__getPropertyHardDefault && from?.__getPropertyHardDefault(key),
+                '\n knownState:', knownState, 'isRootConfig:', isRootConfig, 'parentKnowsSameDef:', parentKnowsSameDef,
+                !from.__rootConfig, from.__parentConfig === from.__rootConfig);
               if (!lazyAttach || !knownState) {
                 if (knownState) {
                   const {
@@ -556,7 +582,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                     description, max, min, volatile,
                     typeBuilder, arrayTypeBuilder, onNewValue,
                     isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
-                    constraint, envAlias, ...noValue
+                    hardDefault, constraint, envAlias, ...noValue
                   } = from.__state[key];
                   retState[key] = noValue;
                 } else {
@@ -564,7 +590,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                     value,
                     typeBuilder, arrayTypeBuilder, onNewValue,
                     isConfigType, isEnumType, isEnumArrayType, isConfigArrayType,
-                    constraint, envAlias, ...noValue
+                    hardDefault, constraint, envAlias, ...noValue
                   } = from.__state[key];
                   retState[key] = noValue;
                 }
@@ -601,12 +627,13 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         }
         // skip if default value
         if (opt.skipDefaultValues) {
+          const isRootConfig = (!!this.__rootConfig && this.__parentConfig === null);
           if (
-            (!this.__rootConfig || this.__rootConfig === this.__parentConfig ||
-              (this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)[key] ===
-              this.__state[key].value) && // root config
-            this.__getPropertyHardDefault(key) === this.__state[key].value &&
-            this.__getPropertyDefault(key) === this.__state[key].value) {
+            (!this.__rootConfig || isRootConfig ||
+              JSON.stringify((this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)?.[key]) ===
+              JSON.stringify(this.__state[key].value)) && // root config
+            JSON.stringify(this.__getPropertyHardDefault(key)) === JSON.stringify(this.__state[key].value) &&
+              JSON.stringify(this.__getPropertyDefault(key)) === JSON.stringify(this.__state[key].value)) {
             continue;
           }
         }
@@ -665,26 +692,26 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
      * before any default value override
      */
     __getPropertyHardDefault(property: string): unknown {
-      if (!this.__prototype.__state?.[property]) { // default value can be undefined
+      if (!this.__state[property]) {
         return;
       }
-      if (this.__prototype.__state[property]?.value) {
-        if (this.__prototype.__state[property].value.__getDefault) {
-          return this.__state[property].value.__getHardDefault();
+      if (this.__state[property]?.hardDefault) {
+        if (this.__state[property].hardDefault.__getDefault) {
+          return this.__state[property].hardDefault.__getHardDefault();
         }
-        if (Array.isArray(this.__prototype.__state[property].value)) {
+        if (Array.isArray(this.__state[property].hardDefault)) {
           const a = [];
-          for (let i = 0; i < this.__prototype.__state[property].value.length; ++i) {
-            if (this.__prototype.__state[property].value[i].__getDefault) {
-              a.push(this.__state[property].value[i].__getHardDefault());
+          for (let i = 0; i < this.__state[property].hardDefault.length; ++i) {
+            if (this.__state[property].hardDefault[i].__getDefault) {
+              a.push(this.__state[property].hardDefault[i].__getHardDefault());
             } else {
-              a.push(this.__prototype.__state[property].default?.[i]);
+              a.push(this.__state[property].hardDefault?.[i]);
             }
           }
           return a;
         }
       }
-      return this.__state[property].default;
+      return this.__state[property].hardDefault;
     }
 
     __getDefault(): Record<PropertyKey, unknown> {

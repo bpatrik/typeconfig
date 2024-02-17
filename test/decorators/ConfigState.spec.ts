@@ -35,16 +35,16 @@ describe('ConfigState', () => {
     chai.expect(c.toJSON()).to.deep.equal({num: 5, zero: 0});
     chai.expect(c.State).to.deep.equal({
       noDefNum: {type: 'float'},
-      num: {default: 5, type: 'float', value: 5},
-      zero: {default: 0, type: 'float', value: 0}
+      num: {default: 5, hardDefault: 5, type: 'float', value: 5},
+      zero: {default: 0, hardDefault: 0, type: 'float', value: 0}
     });
     c.num = 10;
     c.noDefNum = 12;
     chai.expect(c.toJSON()).to.deep.equal({num: 10, noDefNum: 12, zero: 0});
     chai.expect(c.State).to.deep.equal({
       noDefNum: {type: 'float', value: 12},
-      num: {default: 5, type: 'float', value: 10},
-      zero: {default: 0, type: 'float', value: 0}
+      num: {default: 5, hardDefault: 5, type: 'float', value: 10},
+      zero: {default: 0, hardDefault: 0, type: 'float', value: 0}
     });
   });
 
@@ -100,11 +100,11 @@ describe('ConfigState', () => {
     chai.expect(c.toJSON()).to.deep.equal({num: 5, sub: {str: 'apple', subSub: {bool: true}}});
     chai.expect(c.State).to.deep.equal({
       noDefNum: {type: 'float'},
-      num: {default: 5, type: 'float', value: 5},
+      num: {default: 5, hardDefault: 5, type: 'float', value: 5},
       sub: {
         noDefStr: {type: 'string'},
-        str: {default: 'apple', type: 'string', value: 'apple'},
-        subSub: {bool: {default: true, type: 'boolean', value: true}}
+        str: {default: 'apple', hardDefault: 'apple', type: 'string', value: 'apple'},
+        subSub: {bool: {default: true, hardDefault: true, type: 'boolean', value: true}}
       }
     });
     c.num = 10;
@@ -118,11 +118,11 @@ describe('ConfigState', () => {
     });
     chai.expect(c.State).to.deep.equal({
       noDefNum: {type: 'float', value: 12},
-      num: {default: 5, type: 'float', value: 10},
+      num: {default: 5, hardDefault: 5, type: 'float', value: 10},
       sub: {
         noDefStr: {type: 'string', value: 'peach'},
-        str: {default: 'apple', type: 'string', value: 'pear'},
-        subSub: {bool: {default: true, type: 'boolean', value: false}}
+        str: {default: 'apple', hardDefault: 'apple', type: 'string', value: 'pear'},
+        subSub: {bool: {default: true, hardDefault: true, type: 'boolean', value: false}}
       }
     });
   });
