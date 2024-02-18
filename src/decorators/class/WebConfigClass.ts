@@ -53,11 +53,16 @@ export function WebConfigClass<TAGS>(options: WebConfigClassOptions<TAGS> = {}):
         }
       }
 
+      __getNewInstance<T>(): T & WebConfigClassType {
+        const ni = new WebConfigClassType();
+        return ni as T & WebConfigClassType;
+      }
+
       /**
        * Clones the Config
        */
       clone<T>(): T & WebConfigClassType {
-        const cloned = new WebConfigClassType();
+        const cloned = this.__getNewInstance();
         this.__cloneTo(cloned);
         return cloned as T & WebConfigClassType;
       }

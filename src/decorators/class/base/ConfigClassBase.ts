@@ -64,7 +64,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
             }
           }
         }
-
+        //   console.log(key, this.__state[key].hardDefault, this.__state[key].value);
       }
       this.__created = true;
     }
@@ -499,6 +499,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       return newValue;
     }
 
+
+    __getNewInstance<T>(): T & ConfigClassBaseType {
+      throw new Error('Not implemented in ConfigClassBase');
+    }
+
     /**
      * Clones its state to the to object
      * @param to config object to clone its state to
@@ -520,6 +525,9 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           return value;
         }
       }));
+
+      const skipDefaultValues = opt.skipDefaultValues;
+      delete opt.skipDefaultValues;
       const ret: { [key: string]: any } = {};
 
       // Attach __state
@@ -557,24 +565,9 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                 JSON.stringify((from.__parentConfig.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key])
                 === JSON.stringify(from.__getPropertyHardDefault(key));
 
-              if (
-                // check if it's a standalone config.
-                // In that case we don't know if we need types, so lets just add them
-                //  !!from.__rootConfig &&
-
-                (isRootConfig ||
-                  (
-                    parentKnowsSameDef
-                  ))) {
-
+              if (isRootConfig || parentKnowsSameDef) {
                 knownState = true;
               }
-              console.log(this.__propPath, key,
-                '\n\t parent:', from?.__parentConfig?.__getPropertyHardDefault(from.__propName),
-                '\n\tparentdef:', (from?.__parentConfig?.__getPropertyHardDefault(from.__propName) as Record<string, unknown>)?.[key],
-                '\n\tselfdef  :', from?.__getPropertyHardDefault && from?.__getPropertyHardDefault(key),
-                '\n knownState:', knownState, 'isRootConfig:', isRootConfig, 'parentKnowsSameDef:', parentKnowsSameDef,
-                !from.__rootConfig, from.__parentConfig === from.__rootConfig);
               if (!lazyAttach || !knownState) {
                 if (knownState) {
                   const {
@@ -595,6 +588,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                   retState[key] = noValue;
                 }
               }
+
             }
           }
           if (Object.keys(retState).length === 0) {
@@ -625,18 +619,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         ) {
           continue;
         }
-        // skip if default value
-        if (opt.skipDefaultValues) {
-          const isRootConfig = (!!this.__rootConfig && this.__parentConfig === null);
-          if (
-            (!this.__rootConfig || isRootConfig ||
-              JSON.stringify((this.__parentConfig.__getPropertyHardDefault(this.__propName) as Record<string, unknown>)?.[key]) ===
-              JSON.stringify(this.__state[key].value)) && // root config
-            JSON.stringify(this.__getPropertyHardDefault(key)) === JSON.stringify(this.__state[key].value) &&
-              JSON.stringify(this.__getPropertyDefault(key)) === JSON.stringify(this.__state[key].value)) {
-            continue;
-          }
-        }
         if (opt.attachDescription === true && typeof this.__state[key].description !== 'undefined') {
           ret['//[' + key + ']'] = this.__state[key].description;
         }
@@ -664,7 +646,75 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           ret[key] = this.__state[key].value;
         }
       }
-      return ret;
+      // preserve extreme numbers
+      const jsonRet = JSON.parse(JSON.stringify(ret, (key, value) => {
+        if (value !== value) {
+          return 'NaN';
+        }
+
+        if (value === Infinity) {
+          return 'Infinity';
+        }
+
+        if (value === -Infinity) {
+          return '-Infinity';
+        }
+
+        return value;
+      }), (key, value) => {
+        if (value === 'NaN') {
+          return NaN;
+        }
+
+        if (value === 'Infinity') {
+          return Infinity;
+        }
+
+        if (value === '-Infinity') {
+          return -Infinity;
+        }
+
+        if (typeof value === 'string' &&
+          JSON.stringify(new Date(value)) === JSON.stringify(value)) {
+          return new Date(value);
+        }
+
+
+        return value;
+      });
+      if (skipDefaultValues === true) {
+        const knownJson = (this.__getNewInstance()).toJSON(opt);
+        const removeSame = (obj: Record<string, any>, ref: Record<string, any>) => {
+          if (typeof obj === 'undefined' || typeof ref === 'undefined') {
+            return;
+          }
+          const isArr = Array.isArray(obj);
+          const remove = (key: string | number) => {
+            if (isArr) {
+              (obj as unknown[]).splice(key as number, 1);
+            }
+            delete obj[key];
+          };
+
+          for (const key of Object.keys(obj).reverse()) { // make sure it also works for arrays
+            if (typeof ref[key] === 'undefined') {
+              continue;
+            }
+            if (obj[key] === ref[key]) {
+              remove(key);
+              continue;
+            }
+            if (typeof obj[key] === 'object') {
+              removeSame(obj[key], ref[key]);
+              if (Object.keys(obj[key]).length === 0) {
+                remove(key);
+              }
+            }
+          }
+        };
+        removeSame(jsonRet, knownJson);
+      }
+      return jsonRet;
     }
 
     __getFulName(property: string, separator = '.'): string {

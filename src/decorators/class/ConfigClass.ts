@@ -357,11 +357,16 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
         return ret;
       }
 
+      __getNewInstance<T>(): T & ConfigClassType {
+        const ni = new ConfigClassType();
+        return ni as T & ConfigClassType;
+      }
+
       /**
        * Clones the Config
        */
       clone<T>(): T & ConfigClassType {
-        const cloned = new ConfigClassType();
+        const cloned = this.__getNewInstance();
         this.__cloneTo(cloned);
         return cloned as T & ConfigClassType;
       }

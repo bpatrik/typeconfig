@@ -170,9 +170,22 @@ describe('ConfigClass', () => {
     (c.main.subArr[1].subsub as SubSub).b = 20;
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
 
-    wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
+   wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
 
+
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON()))).to.deep.equal(
+      JSON.parse(JSON.stringify(c.toJSON())));
+    chai.expect(JSON.parse(JSON.stringify(c.toJSON()))).to.deep.equal(
+      JSON.parse(JSON.stringify(c.toJSON())));
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON()))).to.deep.equal(
+      JSON.parse(JSON.stringify(wc.toJSON())));
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true, skipDefaultValues: true})))).to.deep.equal(
+      JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
     chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.deep.equal(
+      JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.deep.equal(
+      JSON.parse(JSON.stringify(wc.toJSON({attachState: true}))));
+    chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true})))).to.deep.equal(
       JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
   });
   it('should JSON skip default values ', () => {
@@ -223,20 +236,11 @@ describe('ConfigClass', () => {
     c.main.sub[1].sub = new SubSub();
     (c.main.sub[1].sub as SubSub).b = 20;
 
-    chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to
+    chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to.not
       .deep.equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
     // TODO: this is not the best implementation
     chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true})))).to.deep.equal(
       {
-        __state: {
-          main: {
-            a: {
-              default: 5 //TODO: this should not be part of this
-            },
-            gen: {default: []},
-            sub: {default: [{subNum: 3}]}
-          }
-        },
         main: {
           gen: [{
             __state: {
@@ -250,11 +254,9 @@ describe('ConfigClass', () => {
           }],
           sub: [{
             __state: {
-              sub: {b: {default: 3, type: 'float'}},
-              subNum: {default: 3, type: 'float'}
+              sub: {b: {default: 3, type: 'float'}}
             },
             sub: {__state: {b: {default: 3, type: 'float'}}, b: 10},
-            subNum: 3
           }, {
             __state: {
               sub: {b: {default: 3, type: 'float'}},
