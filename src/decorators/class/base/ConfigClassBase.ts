@@ -140,7 +140,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         }
 
         if (sourceObject[key].tags) {
-          this.__state[key].tags = this.__state[key].tags || sourceObject[key].tags;
+          this.__state[key].tags = this.__state[key].tags || {} as TAGS;
+          Object.assign(this.__state[key].tags , sourceObject[key].tags);
         }
         if (sourceObject[key].description) {
           this.__state[key].description = this.__state[key].description || sourceObject[key].description;
