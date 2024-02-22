@@ -775,7 +775,6 @@ describe('ConfigProperty', () => {
     c.arr.push(new Sub(new T1(3)));
     chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num1: 1}}, {t: {type: 't2', num2: 2}}, {t: {type: 't1', num1: 3}}]});
     const nv = new T1(99);
-    console.log('--------new value---------');
     c.arr[1].t = nv;
     chai.expect(c.toJSON()).to.deep.equal({arr: [{t: {type: 't1', num1: 1}}, {t: {type: 't1', num1: 99}}, {t: {type: 't1', num1: 3}}]});
   });

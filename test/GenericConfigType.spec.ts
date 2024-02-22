@@ -98,13 +98,101 @@ describe('GenericConfigType', () => {
     (c.inner as Sub).b = 'test';
 
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
-    console.log(JSON.stringify(c.toJSON({attachState: true}),null,4));
     wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
     chai.expect(wc.__state['a'].value).to.deep.equal(10);
     chai.expect((wc.inner as any).__state['b']?.value).to.deep.equal('test');
     chai.expect((wc.inner as any).b).to.deep.equal('test');
   });
 
+
+  it('should load sub sub GenericConfigType properly from direct assignment', () => {
+
+    @SubConfigClass()
+    class SubSub1 {
+      @ConfigProperty({
+        tags: {
+          testTag: 'my value'
+        },
+        description: 'just a description'
+      })
+      c: string = 'SubSub string';
+    }
+
+    @SubConfigClass()
+    class SubSub2 {
+      @ConfigProperty({
+        tags: {
+          testTag: 'my value'
+        },
+        description: 'just a description'
+      })
+      c2: string = 'SubSub2 string';
+    }
+
+
+    @SubConfigClass()
+    class Sub {
+      @ConfigProperty()
+      b: string = 'Sub string';
+
+      @ConfigProperty({type: GenericConfigType})
+      sub: GenericConfigType;
+    }
+
+
+    @SubConfigClass()
+    class Main {
+
+      @ConfigProperty({arrayType: Sub})
+      arr: Sub[] = [];
+    }
+
+    @ConfigClass()
+    class C {
+
+      @ConfigProperty()
+      a: number = 3;
+
+      @ConfigProperty({type: Main})
+      main: Main = new Main();
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.loadSync();
+
+    c.main.arr.push(new Sub());
+    c.main.arr.push(new Sub());
+    c.main.arr[0].sub = new SubSub1();
+    c.main.arr[1].sub = new SubSub2();
+
+    chai.expect(c.toJSON()).to.deep.equal({
+      a: 3,
+      main: {
+        arr: [
+          {b: 'Sub string', sub: {c: 'SubSub string'}},
+          {b: 'Sub string', sub: {c2: 'SubSub2 string'}}
+        ]
+      }
+    });
+    console.log('------------------------------');
+    c.main = {
+      arr: [
+        {b: 'test1', sub: {c: 'new SubSub string'}},
+        {b: 'test2', sub: {c2: 'new SubSub2 string'}}
+      ]
+    };
+
+    chai.expect(c.toJSON()).to.deep.equal({
+      a: 3,
+      main: {
+        arr: [
+          {b: 'test1', sub: {c: 'new SubSub string'}},
+          {b: 'test2', sub: {c2: 'new SubSub2 string'}}
+        ]
+      }
+    });
+
+  });
 
   it('should load sub sub GenericConfigType properly', () => {
 

@@ -141,7 +141,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         if (sourceObject[key].tags) {
           this.__state[key].tags = this.__state[key].tags || {} as TAGS;
-          Object.assign(this.__state[key].tags , sourceObject[key].tags);
+          this.__state[key].tags = {...(sourceObject[key].tags || {} as TAGS), ...(this.__state[key].tags || {} as TAGS)};
         }
         if (sourceObject[key].description) {
           this.__state[key].description = this.__state[key].description || sourceObject[key].description;
@@ -330,7 +330,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       }
       newValue = this.__validateType(property, newValue, _typeState);
       this.__validateConstrains(property, newValue, exceptionStack);
-
       return newValue;
     }
 
@@ -366,6 +365,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
      */
     __validateType<T>(property: string, newValue: T,
                       _typeState?: {
+                        build?: () => ConfigClassBaseType,
                         type?: propertyTypes,
                         isEnumType?: boolean, isConfigType?: boolean
                       }): any {
@@ -377,6 +377,10 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       const type: propertyTypes = typeof _typeState !== 'undefined' ? _typeState.type :
         (propState.typeBuilder ? propState.typeBuilder(newValue, this.__rootConfig) :
           propState.type);
+      // TODO make it work with type based builder
+      const build = () => {
+        return (_typeState?.build ? _typeState.build : (propState?.value?.clone ? propState?.value?.clone : () => new (<any>type)()))();
+      };
       const isEnumType = typeof _typeState !== 'undefined' ? _typeState.isEnumType : propState.isEnumType;
       const isConfigType = typeof _typeState !== 'undefined' ? _typeState.isConfigType : propState.isConfigType;
 
@@ -425,12 +429,17 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           if (propState.arrayType !== 'array') {
             const tmpNewValue = [];
             for (let i = 0; i < newValue.length; ++i) {
-              const t = propState.arrayTypeBuilder ? propState.arrayTypeBuilder(newValue[i], this.__rootConfig) :
+              const t: propertyTypes = propState.arrayTypeBuilder ? propState.arrayTypeBuilder(newValue[i], this.__rootConfig) :
                 (propState.arrayType ? propState.arrayType : null);
+
+              const factory = (t === propState.arrayType && propState?.value?.[i]?.clone) ? {build: () => propState.value[i].clone()} : {};
               tmpNewValue[i] = this.__validate(property, newValue[i], {
                 type: t,
                 isEnumType: propState.isEnumArrayType,
-                isConfigType: propState.isConfigArrayType
+                isConfigType: propState.isConfigArrayType,
+                // add custom builder if there is no type based builder
+                // TODO make it work with type based builder
+                ...(factory)
               });
             }
             return tmpNewValue;
@@ -482,7 +491,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         }
 
         if (!ConfigClassBaseType.isConfigClassBase(newValue)) {
-          const o: ConfigClassBaseType = new (<any>type)();
+          const o: ConfigClassBaseType = build();
           const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
           o.__setParentConfig(propPath, property, this.__rootConfig, this);
           if ((newValue as { __state: unknown }).__state) {
@@ -491,6 +500,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           o.__loadJSONObject(newValue);
           return o;
         }
+
         // if the default value of a ConfigObject is undefined root and parent will be never set
         if (!(newValue as ConfigClassBaseType).__rootConfig && (newValue as ConfigClassBaseType).__setParentConfig) {
           const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
@@ -518,6 +528,15 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       to.__loadJSONObject(configJson, false, true);
       to.__loadStateJSONObject(__state);
 
+    }
+
+    /**
+     * Clones the Config
+     */
+    clone<T>(): T & ConfigClassBaseType {
+      const cloned = this.__getNewInstance();
+      this.__cloneTo(cloned);
+      return cloned as T & ConfigClassBaseType;
     }
 
     toJSON(opt?: ToJSONOptions<TAGS>, lazyAttach = false): { [key: string]: any } {

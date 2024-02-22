@@ -113,19 +113,84 @@ describe('ConfigClass', () => {
     chai.expect(c.toJSON({attachVolatile: true})).to.deep.equal({num: 5, num2: 50});
   });
 
+  it('should JSON do not override existing tags ', () => {
+
+
+    @SubConfigClass()
+    class Sub {
+      @ConfigProperty({
+        tags: {
+          name: ['main name'],
+          extraTag: 'test'
+        }
+      })
+      a: number = 5;
+
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({arrayType: Sub})
+      main: Sub[] = [new Sub()];
+    }
+
+    @SubConfigClass<{ name: string }>()
+    class WebSub {
+      @ConfigProperty({
+        tags: {
+          name: 'web name',
+        }
+      })
+      a: number = 5;
+
+    }
+
+    @WebConfigClass()
+    class WC {
+      @ConfigProperty({arrayType: WebSub})
+      main: WebSub[] = [new WebSub()];
+    }
+
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    const wc = ConfigClassBuilder.attachPrivateInterface(new WC());
+    c.loadSync();
+    (c.main as Sub[])[0].a = 11;
+
+    wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+
+
+    chai.expect(JSON.parse(JSON.stringify(wc.toJSON({attachState: true})))).to.not
+      .deep.equal(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
+
+    chai.expect((c.__state as any).main.value[0].__state.a.tags.name).to.deep.equal(['main name']);
+    chai.expect((wc.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
+    chai.expect((wc.__state as any).main.value[0].__state.a.tags.extraTag).to.deep.equal('test');
+    chai.expect((wc.clone().__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
+  });
 
   it('should JSON skip default values should not change value', () => {
 
     @SubConfigClass()
     class SubSub {
-      @ConfigProperty()
+      @ConfigProperty({
+        tags: {
+          name: 'SubSub tag name'
+        },
+        description: 'SubSub dsc'
+      })
       b: number = 3;
     }
 
 
     @SubConfigClass()
     class Sub {
-      @ConfigProperty()
+      @ConfigProperty({
+        tags: {
+          name: 'just a tag name'
+        },
+        description: 'dsc'
+      })
       subNum: number = 3;
 
       @ConfigProperty({type: GenericConfigType})
@@ -170,8 +235,7 @@ describe('ConfigClass', () => {
     (c.main.subArr[1].subsub as SubSub).b = 20;
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
 
-   wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
-
+    wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true, skipDefaultValues: true}))));
 
     chai.expect(JSON.parse(JSON.stringify(wc.toJSON()))).to.deep.equal(
       JSON.parse(JSON.stringify(c.toJSON())));
@@ -188,18 +252,29 @@ describe('ConfigClass', () => {
     chai.expect(JSON.parse(JSON.stringify(c.toJSON({attachState: true})))).to.deep.equal(
       JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
   });
+
   it('should JSON skip default values ', () => {
 
     @SubConfigClass()
     class SubSub {
-      @ConfigProperty()
+      @ConfigProperty({
+        tags: {
+          name: 'just a tag name'
+        },
+        description: 'dsc'
+      })
       b: number = 3;
     }
 
 
     @SubConfigClass()
     class Sub {
-      @ConfigProperty()
+      @ConfigProperty({
+        tags: {
+          name: 'just a tag name'
+        },
+        description: 'dsc'
+      })
       subNum: number = 3;
 
       @ConfigProperty({type: GenericConfigType})
@@ -244,25 +319,73 @@ describe('ConfigClass', () => {
         main: {
           gen: [{
             __state: {
-              sub: {b: {default: 3, type: 'float'}},
-              subNum: {default: 3, type: 'float'}
+              sub: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              },
+              subNum: {
+                default: 3,
+                description: 'dsc', tags: {name: 'just a tag name'},
+                type: 'float'
+              }
             },
             sub: {
-              __state: {b: {default: 3, type: 'float'}}, b: 13
+              __state: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              }, b: 13
             },
             subNum: 3
           }],
           sub: [{
             __state: {
-              sub: {b: {default: 3, type: 'float'}}
+              sub: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              }
             },
-            sub: {__state: {b: {default: 3, type: 'float'}}, b: 10},
+            sub: {
+              __state: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              }, b: 10
+            },
           }, {
             __state: {
-              sub: {b: {default: 3, type: 'float'}},
-              subNum: {default: 3, type: 'float'}
+              sub: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              },
+              subNum: {
+                default: 3,
+                description: 'dsc', tags: {name: 'just a tag name'},
+                type: 'float'
+              }
             },
-            sub: {__state: {b: {default: 3, type: 'float'}}, b: 20},
+            sub: {
+              __state: {
+                b: {
+                  default: 3,
+                  description: 'dsc', tags: {name: 'just a tag name'},
+                  type: 'float'
+                }
+              }, b: 20
+            },
             subNum: 3
           }]
         }

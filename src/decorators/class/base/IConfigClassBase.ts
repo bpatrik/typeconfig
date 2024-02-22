@@ -40,7 +40,7 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __propPath: string;
   __options: SubClassOptions<TAGS>;
 
-
+  clone<T>(): T & IConfigClassPrivateBase<TAGS>;
   __getNewInstance<T>(): T & IConfigClassPrivateBase<TAGS>;
 
   __cloneTo(to: IConfigClassPrivateBase<TAGS>): void;
