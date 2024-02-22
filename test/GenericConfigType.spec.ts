@@ -174,7 +174,7 @@ describe('GenericConfigType', () => {
         ]
       }
     });
-    console.log('------------------------------');
+
     c.main = {
       arr: [
         {b: 'test1', sub: {c: 'new SubSub string'}},
