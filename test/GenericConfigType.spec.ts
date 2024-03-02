@@ -7,6 +7,8 @@ import {SubConfigClass} from '../src/decorators/class/SubConfigClass';
 import {GenericConfigType} from '../src/GenericConfigType';
 import {WebConfigClassBuilder} from '../src/decorators/builders/WebConfigClassBuilder';
 import {WebConfigClass} from '../src/decorators/class/WebConfigClass';
+import {TestHelper} from './TestHelper';
+import {promises as fsp} from 'fs';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -261,4 +263,78 @@ describe('GenericConfigType', () => {
     chai.expect((wc.inner as any).subSub.__state['c'].description).to.deep.equal('just a description');
   });
 
+
+  describe('config file', () => {
+
+    const filePath = TestHelper.getFilePath('testConf.json');
+    beforeEach(async () => {
+      await TestHelper.cleanTempFolder();
+    });
+    afterEach(async () => {
+      await TestHelper.removeTempFolder();
+    });
+
+    it('should load', async () => {
+
+
+      @SubConfigClass()
+      class SubSub {
+        @ConfigProperty({
+          tags: {
+            testTag: 'my value'
+          },
+          description: 'just a description'
+        })
+        c: string = 'SubSub string';
+      }
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        b: string = 'Sub string';
+
+        @ConfigProperty({type: GenericConfigType})
+        subSub: GenericConfigType;
+      }
+
+
+      @ConfigClass({configPath: filePath})
+      class C {
+
+        @ConfigProperty()
+        a: number = 5;
+
+
+        @ConfigProperty({type: GenericConfigType})
+        inner: GenericConfigType;
+
+      }
+
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c2 = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.inner = new Sub();
+      c.a = 10;
+      (c.inner as Sub).b = 'test';
+      (c.inner as Sub).subSub = new SubSub();
+      ((c.inner as Sub).subSub as SubSub).c = 'test2';
+      chai.expect(c.a ).to.equal(10);
+      chai.expect((c.inner as any).subSub.__state['c'].value).to.deep.equal('test2');
+      chai.expect((c.inner as any).subSub.c).to.deep.equal('test2');
+      chai.expect((c.inner as any).subSub.__isDefault()).to.deep.equal(false);
+
+      chai.expect(fsp.access(filePath)).to.rejectedWith();
+      await c.load();
+      chai.expect(fsp.access(filePath)).not.to.rejectedWith();
+
+      await c2.load();
+      c2.inner = new Sub();
+      (c2.inner as Sub).subSub = new SubSub();
+      await c2.load();
+      chai.expect(c2.a ).to.equal(10);
+      chai.expect((c2.inner as any).subSub.__state['c'].value).to.deep.equal('test2');
+      chai.expect((c2.inner as any).subSub.c).to.deep.equal('test2');
+      chai.expect((c2.inner as any).subSub.__isDefault()).to.deep.equal(false);
+    });
+  });
 });

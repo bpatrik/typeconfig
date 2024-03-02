@@ -8,5 +8,7 @@ export class GenericConfigType {
     // this is a ConfigClassBase hack to prevent circular dependencies.
     // @ts-ignore
     this.__unknownObjectType = GenericConfigType;
+    // @ts-ignore
+    this.__isGenericConfigType = true;
   }
 }

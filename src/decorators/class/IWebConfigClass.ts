@@ -12,8 +12,4 @@ export interface IWebConfigClass<TAGS = { [key: string]: any }> extends IConfigC
    */
   load(configJson?: any): void;
 
-  /**
-   * Clones the Config
-   */
-  clone<T>(): T & IWebConfigClass<TAGS>;
 }

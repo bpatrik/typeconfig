@@ -22,6 +22,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
     __created = false;
     __prototype = constructorFunction.prototype;
     __unknownObjectType: unknown;
+    __isGenericConfigType: boolean;
 
     constructor(...args: any[]) {
       super(...args);
@@ -492,6 +493,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         if (!ConfigClassBaseType.isConfigClassBase(newValue)) {
           const o: ConfigClassBaseType = build();
+          if (typeof propState.value === 'undefined' &&
+            o.__isGenericConfigType &&
+            !(newValue as { __state: unknown }).__state) {
+            return; // do not set anything if we cannot set the state of generic type
+          }
           const propPath = this.__propPath.length > 0 ? (this.__propPath + '.' + property) : property;
           o.__setParentConfig(propPath, property, this.__rootConfig, this);
           if ((newValue as { __state: unknown }).__state) {

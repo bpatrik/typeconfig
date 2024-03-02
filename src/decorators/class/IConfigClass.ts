@@ -82,11 +82,6 @@ export interface ConfigClassOptions<C, TAGS = { [key: string]: any }> extends Co
 
 export interface IConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>, IConfigClass<TAGS> {
   __printMan(): string;
-
-  /**
-   * Clones the Config
-   */
-  clone<T>(): T & IConfigClassPrivate<TAGS>;
 }
 
 
