@@ -142,9 +142,9 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
         return this.__loadJSONObject(config, true);
       }
 
-      loadSync(pathOverride?: string): void {
+      loadSync(opt: { pathOverride?: string, preventSaving?: boolean }): void {
 
-        const configPath = pathOverride || options.configPath;
+        const configPath = opt.pathOverride || options.configPath;
 
         if (debugMode === true && configPath) {
           console.log('[Typeconfig] Loading config. Path: ' + configPath);
@@ -192,7 +192,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
             console.error(e);
           }
         }
-        if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
+        if (!opt.preventSaving && ((options.saveIfNotExist === true && exists === false) || shouldSave)) {
           this.saveSync(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);
@@ -214,8 +214,8 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       }
 
 
-      async load(pathOverride?: string): Promise<any> {
-        const configPath = pathOverride || options.configPath;
+      async load(opt: { pathOverride?: string, preventSaving?: boolean }): Promise<any> {
+        const configPath = opt.pathOverride || options.configPath;
         await this.__loadDefaults(configPath);
 
         if (configPath) {
@@ -260,7 +260,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
             console.error(e);
           }
         }
-        if ((options.saveIfNotExist === true && exists === false) || shouldSave) {
+        if (!opt.preventSaving && ((options.saveIfNotExist === true && exists === false) || shouldSave)) {
           await this.save(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);

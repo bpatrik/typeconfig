@@ -88,15 +88,17 @@ export interface IConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>
 export interface IConfigClass<TAGS = { [key: string]: any }> extends IConfigClassBase<TAGS> {
   /**
    * Loads the config from file, cli and ENV synchronously. Does not reinit the object from class
-   * @param pathOverride - overrides the config path
+   * @param opt.pathOverride - overrides the config path
+   * @param opt.preventSaving - prevents auto save if file does not exist
    */
-  loadSync(pathOverride?: string): void;
+  loadSync(opt: { pathOverride?: string, preventSaving?: boolean }): void;
 
   /**
    * Loads the config from file, cli and ENV asynchronously. Does not reinit the object from class
-   * @param pathOverride - overrides the config path
+   * @param opt.pathOverride - overrides the config path
+   * @param opt.preventSaving - prevents auto save if file does not exist
    */
-  load(pathOverride?: string): Promise<any>;
+  load(opt: { pathOverride?: string, preventSaving?: boolean }): Promise<any>;
 
   save(pathOverride?: string): Promise<any>;
 
