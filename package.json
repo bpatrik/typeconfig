@@ -4,6 +4,7 @@
   "description": "Config loader for Typescript",
   "main": "common.js",
   "scripts": {
+    "build": "tsc",
     "pretest": "tsc",
     "test": "nyc mocha --recursive test",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
