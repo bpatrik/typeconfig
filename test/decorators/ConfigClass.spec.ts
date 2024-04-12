@@ -166,7 +166,7 @@ describe('ConfigClass', () => {
     chai.expect((c.__state as any).main.value[0].__state.a.tags.name).to.deep.equal(['main name']);
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.extraTag).to.deep.equal('test');
-    chai.expect((wc.clone().__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
+    chai.expect(((wc.clone() as any).__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
   });
 
   it('should JSON skip default values should not change value', () => {

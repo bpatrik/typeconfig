@@ -211,7 +211,7 @@ describe('WebConfigClass', () => {
       chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
         __state: {num: {}, num2: {}}, num2: 10
       });
-      chai.expect((c.clone<C>().sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+      chai.expect(((c as any).clone().sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
         __state: {num: {}, num2: {}}, num2: 10
       });
 
