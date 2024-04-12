@@ -10,6 +10,7 @@ import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/clas
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 import {WebConfigClassBuilder} from '../../web';
 import {GenericConfigType} from '../../src/GenericConfigType';
+import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -166,8 +167,7 @@ describe('ConfigClass', () => {
     chai.expect((c.__state as any).main.value[0].__state.a.tags.name).to.deep.equal(['main name']);
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.extraTag).to.deep.equal('test');
-    // @ts-ignore
-    chai.expect((wc.clone().__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
+    chai.expect(((wc.clone() as IConfigClassPrivateBase<{}>).__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
   });
 
   it('should JSON skip default values should not change value', () => {

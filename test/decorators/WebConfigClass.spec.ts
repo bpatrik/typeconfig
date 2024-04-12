@@ -4,6 +4,7 @@ import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
 import {WebConfigClassBuilder} from '../../src/decorators/builders/WebConfigClassBuilder';
 import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
+import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase';
 
 const chai: any = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -203,7 +204,7 @@ describe('WebConfigClass', () => {
 
       const _c = WebConfigClassBuilder.attachPrivateInterface(new C());
       _c.load({sub: {arr: [{num: 1}, {num2: 2}]}});
-      const c = _c.clone<C>();
+      const c = (_c.clone<C>() as (C & IConfigClassPrivateBase<C>));
       chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
         __state: {num: {}, num2: {}}, num2: 2
       });
@@ -211,7 +212,6 @@ describe('WebConfigClass', () => {
       chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
         __state: {num: {}, num2: {}}, num2: 10
       });
-      // @ts-ignore
       chai.expect((c.clone<C>().sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
         __state: {num: {}, num2: {}}, num2: 10
       });
