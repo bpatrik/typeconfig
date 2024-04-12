@@ -64,6 +64,47 @@ describe('ConfigClass', () => {
     chai.expect(c.toJSON()).to.deep.equal({num: 10, __state: {num: {default: 5}}});
   });
 
+  it('should have defaults of dynamically added class', async () => {
+
+    @SubConfigClass()
+    class Inner {
+      @ConfigProperty()
+      b: number = 3;
+    }
+
+
+    @SubConfigClass()
+    class Sub {
+      @ConfigProperty()
+      subNum: number = 3;
+
+      @ConfigProperty()
+      inner: unknown = {};
+    }
+
+    @SubConfigClass()
+    class MainConf {
+      @ConfigProperty()
+      a: number = 5;
+
+      @ConfigProperty({arrayType: Sub})
+      list: Sub[] = [];
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({type: MainConf})
+      main: MainConf = new MainConf();
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.main.list.push(new Sub());
+    c.main.list[0].inner = new Inner();
+    chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 3}}]}});
+    (c.main.list[0].inner as Inner).b = 11;
+    chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 11}}]}});
+  });
+
   it('should JSON keep description-value order', () => {
 
     @ConfigClass({attachDescription: true})
@@ -790,6 +831,309 @@ describe('ConfigClass', () => {
     });
 
 
+    it('should loadSync config-array type', async () => {
+
+      @SubConfigClass()
+      class SubC {
+
+
+        @ConfigProperty()
+        num: number = 5;
+
+        constructor(num: number) {
+          this.num = num;
+        }
+
+      }
+
+      @ConfigClass({configPath: filePath})
+      class C {
+
+        @ConfigProperty({arrayType: SubC})
+        subArr: SubC[] = [new SubC(10), new SubC(12)];
+
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const c2 = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({subArr: [{num: 10}, {num: 12}]});
+      c.subArr[0].num = 100;
+      c.subArr[1].num = 200;
+      chai.expect(c.toJSON()).to.deep.equal({subArr: [{num: 100}, {num: 200}]});
+      c.loadSync();
+      chai.expect(c.toJSON()).to.deep.equal({subArr: [{num: 100}, {num: 200}]});
+      chai.expect(c2.toJSON()).to.deep.equal({subArr: [{num: 10}, {num: 12}]});
+      c2.loadSync();
+      chai.expect(c2.toJSON()).to.deep.equal({subArr: [{num: 100}, {num: 200}]});
+      c2.subArr = [];
+      c2.loadSync();
+      chai.expect(c2.toJSON()).to.deep.equal({subArr: [{num: 100}, {num: 200}]});
+      chai.expect((<any>c2.subArr[0]).toJSON()).to.deep.equal({num: 100});
+    });
+
+    it('should load subconfig array as config obj', async () => {
+
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @SubConfigClass()
+      class S {
+        @ConfigProperty({arrayType: SA})
+        arr: SA[] = [];
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {arr: []}});
+      await fsp.writeFile(filePath, JSON.stringify({sub: {arr: [{num: 1}, {num2: 2}]}}, null, 4));
+      await c.load(filePath);
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 2
+      });
+      c.sub.arr[1].num2 = 10;
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+
+    });
+
+    it('should loadSync subconfig array as config obj', async () => {
+
+      @SubConfigClass()
+      class SA {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        num2: number;
+
+        constructor(n?: number) {
+          this.num = n;
+        }
+      }
+
+      @SubConfigClass()
+      class S {
+        @ConfigProperty({arrayType: SA})
+        arr: SA[] = [];
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        sub: S = new S();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({sub: {arr: []}});
+      await fsp.writeFile(filePath, JSON.stringify({sub: {arr: [{num: 1}, {num2: 2}]}}, null, 4));
+      c.loadSync(filePath);
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 2
+      });
+      c.sub.arr[1].num2 = 10;
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+      chai.expect((c.sub.arr[1] as any).toJSON({attachState: true})).to.deep.equal({
+        __state: {num: {}, num2: {}}, num2: 10
+      });
+
+    });
+
+    it('should load dynamically added class', async () => {
+  
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty()
+        b: number = 3;
+      }
+  
+  
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        subNum: number = 3;
+  
+        @ConfigProperty()
+        inner: unknown = {};
+      }
+  
+      @SubConfigClass()
+      class MainConf {
+        @ConfigProperty()
+        a: number = 5;
+  
+        @ConfigProperty({arrayType: Sub})
+        list: Sub[] = [];
+      }
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: MainConf})
+        main: MainConf = new MainConf();
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.main.list.push(new Sub());
+      c.main.list[0].inner = new Inner();
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 3}}]}});
+      await c.load();
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 3}}]}});
+      (c.main.list[0].inner as Inner).b = 11;
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 11}}]}});
+    });
+
+    it('should loadSync dynamically added class', async () => {
+  
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty()
+        b: number = 3;
+      }
+  
+  
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        subNum: number = 3;
+  
+        @ConfigProperty()
+        inner: unknown = {};
+      }
+  
+      @SubConfigClass()
+      class MainConf {
+        @ConfigProperty()
+        a: number = 5;
+  
+        @ConfigProperty({arrayType: Sub})
+        list: Sub[] = [];
+      }
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: MainConf})
+        main: MainConf = new MainConf();
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.main.list.push(new Sub());
+      c.main.list[0].inner = new Inner();
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 3}}]}});
+      c.loadSync();
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 3}}]}});
+      (c.main.list[0].inner as Inner).b = 11;
+      chai.expect(c.toJSON()).to.deep.equal({main: {a: 5, list:[{subNum: 3, inner: {b: 11}}]}});
+    });
+
+    it('should load from partial config', async () => {
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        a: number = 5;
+
+        @ConfigProperty()
+        b: number = 3;
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({a: 5, b: 3});
+      await fsp.writeFile(filePath, JSON.stringify({a: 4}, null, 4));
+      await c.load(filePath);
+      chai.expect(c.toJSON()).to.deep.equal({a: 4, b: 3});
+    });
+
+    it('should loadSync from partial config', async () => {
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        a: number = 5;
+
+        @ConfigProperty()
+        b: number = 3;
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({a: 5, b: 3});
+      await fsp.writeFile(filePath, JSON.stringify({a: 4}, null, 4));
+      c.loadSync(filePath);
+      chai.expect(c.toJSON()).to.deep.equal({a: 4, b: 3});
+    });
+
+    it('should load subconfig from partial config', async () => {
+  
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty()
+        b: number = 5;
+  
+        @ConfigProperty()
+        c: number = 8;
+      }
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        a: number = 3;
+  
+        @ConfigProperty({type: Inner})
+        inner: Inner = new Inner();
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({a: 3, inner: {b: 5, c:8}});
+      await fsp.writeFile(filePath, JSON.stringify({a: 4}, null, 4));
+      await c.load(filePath);
+      chai.expect(c.toJSON()).to.deep.equal({a: 4, inner: {b: 5, c:8}});
+    });
+
+    it('should loadSync subconfig from partial config', async () => {
+  
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty()
+        b: number = 5;
+  
+        @ConfigProperty()
+        c: number = 8;
+      }
+  
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        a: number = 3;
+  
+        @ConfigProperty({type: Inner})
+        inner: Inner = new Inner();
+      }
+  
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      chai.expect(c.toJSON()).to.deep.equal({a: 3, inner: {b: 5, c:8}});
+      await fsp.writeFile(filePath, JSON.stringify({a: 4}, null, 4));
+      c.loadSync(filePath);
+      chai.expect(c.toJSON()).to.deep.equal({a: 4, inner: {b: 5, c:8}});
+    });
   });
 
   describe('cli options', () => {
