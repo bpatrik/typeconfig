@@ -91,14 +91,14 @@ export interface IConfigClass<TAGS = { [key: string]: any }> extends IConfigClas
    * @param opt.pathOverride - overrides the config path
    * @param opt.preventSaving - prevents auto save if file does not exist
    */
-  loadSync(opt: { pathOverride?: string, preventSaving?: boolean }): void;
+  loadSync(opt?: { pathOverride?: string, preventSaving?: boolean }): void;
 
   /**
    * Loads the config from file, cli and ENV asynchronously. Does not reinit the object from class
    * @param opt.pathOverride - overrides the config path
    * @param opt.preventSaving - prevents auto save if file does not exist
    */
-  load(opt: { pathOverride?: string, preventSaving?: boolean }): Promise<any>;
+  load(opt?: { pathOverride?: string, preventSaving?: boolean }): Promise<any>;
 
   save(pathOverride?: string): Promise<any>;
 
