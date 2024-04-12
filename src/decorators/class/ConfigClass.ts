@@ -206,6 +206,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
           this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
 
+        this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
         // running postprocessing hook
         if (options.onLoadedSync) {
           options.onLoadedSync(this as any);
@@ -273,6 +274,7 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
           this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
         }
 
+        this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
         // running postprocessing hook
         if (options.onLoaded) {
           await options.onLoaded(this as any);

@@ -41,6 +41,7 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __options: SubClassOptions<TAGS>;
 
   clone<T>(): T & IConfigClassBase<TAGS>;
+
   __getNewInstance<T>(): T & IConfigClassPrivateBase<TAGS>;
 
   __cloneTo(to: IConfigClassPrivateBase<TAGS>): void;
@@ -53,6 +54,13 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
                     parentConf: IConfigClassPrivateBase<TAGS>): void;
 
   __validateAll(exceptionStack?: string[]): void;
+
+  /**
+   * Used for propagating defaults as the root knows them.
+   * This is important for arrays to know their defaults.
+   * @param defaults
+   */
+  __inheritDefaultsFromParent(defaults: { [key: string]: any }): void;
 
   __setAndValidateFromRoot<T>(property: string, newValue: T): void;
 

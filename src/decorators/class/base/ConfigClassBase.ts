@@ -296,6 +296,34 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       }
     }
 
+    __inheritDefaultsFromParent(defaults: { [key: string]: any }) {
+
+      if (this.__isGenericConfigType) {
+        // TODO: setting default from parent is not supported for generic config type
+        return;
+      }
+
+      for (const property of Object.keys(this.__state)) {
+        const def = defaults?.[property];
+        // propagate def value from top to bottom
+        if (this.__state[property].value) {
+
+          if (this.__state[property].isConfigType) {
+            this.__state[property].value.__inheritDefaultsFromParent(def);
+          } else if (this.__state[property].isConfigArrayType) {
+            for (let i = 0; i < this.__state[property].value.length; ++i) {
+              this.__state[property].value[i].__inheritDefaultsFromParent(def?.[i]);
+            }
+          }
+          if (isNaN(def) && !def) {
+            delete this.__state[property].default;
+          } else {
+            this.__state[property].default = def;
+          }
+        }
+      }
+    }
+
     __setAndValidateFromRoot<T>(property: string, newValue: T): void {
       // during setting default value, this variable is not exist yet
       if (this.__state[property].value === newValue) {
@@ -307,7 +335,10 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         throw new Error(property + ' is readonly');
       }
       this.__state[property].value = newValue;
+
+
       if (this.__rootConfig) { // while sub config default value set, the root conf is not available yet.
+
 
         if (typeof this.__state[property].onNewValue !== 'undefined') {
           this.__state[property].onNewValue(this.__state[property].value, this.__rootConfig);

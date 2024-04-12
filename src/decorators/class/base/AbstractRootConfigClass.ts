@@ -51,6 +51,7 @@ export function AbstractRootConfigClass<TAGS>(constructorFunction: new (...args:
       if (exceptionStack.length > 0) {
         throw new ConstraintError(exceptionStack.join(', '));
       }
+      this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
 
     }
   };

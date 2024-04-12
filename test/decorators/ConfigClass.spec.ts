@@ -166,6 +166,7 @@ describe('ConfigClass', () => {
     chai.expect((c.__state as any).main.value[0].__state.a.tags.name).to.deep.equal(['main name']);
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.extraTag).to.deep.equal('test');
+    // @ts-ignore
     chai.expect((wc.clone().__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
   });
 
@@ -562,6 +563,70 @@ describe('ConfigClass', () => {
       chai.expect(() => {
         c2.roNum = 11;
       }).to.throw(Error, 'readonly');
+    });
+
+    it('should load when constructor is used', async () => {
+
+
+      @SubConfigClass()
+      class Subsub {
+        @ConfigProperty()
+        a: number = 6;
+
+        constructor(a: number = -1) {
+          this.a = a;
+        }
+      }
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty({arrayType: Subsub})
+        s: (IConfigClassPrivate<{}> & Subsub)[] = [new Subsub(11) as any, new Subsub(15) as any];
+      }
+
+
+      @ConfigClass({configPath: filePath})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty({type: Sub})
+        s: IConfigClassPrivate<{}> & Sub = new Sub() as any;
+      }
+
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.s.s.push(new Subsub(1111) as any);
+      c.s.s[0] = new Subsub(9999) as any;
+      c.s.__inheritDefaultsFromParent(c.s.__defaults);
+      await c.save();
+      await c.load();
+      const c2 = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c2.load();
+      const c3 = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c3.load();
+
+      chai.expect(c.__defaults).to.deep.equal({
+        num: 5, s: {s: [{a: 11}, {a: 15}]}
+      });
+      chai.expect(c.__defaults).to.deep.equal(c2.__defaults);
+      chai.expect(c.__defaults).to.deep.equal(c3.__defaults);
+
+      chai.expect(c.s.__defaults).to.deep.equal({s: [{a: 11}, {a: 15}]});
+      chai.expect(c.s.__defaults).to.deep.equal(c2.s.__defaults);
+      chai.expect(c.s.__defaults).to.deep.equal(c3.s.__defaults);
+
+      chai.expect(c.s.s[0].__defaults).to.deep.equal({a: 11});
+      chai.expect(c.s.s[1].__defaults).to.deep.equal({a: 15});
+      chai.expect(c.s.s[0].__defaults).to.deep.equal(c2.s.s[0].__defaults);
+      chai.expect(c.s.s[1].__defaults).to.deep.equal(c2.s.s[1].__defaults);
+      chai.expect(c.s.s[2].__defaults).to.deep.equal(c2.s.s[2].__defaults);
+      chai.expect(c.s.s[0].__defaults).to.deep.equal(c3.s.s[0].__defaults);
+      chai.expect(c.s.s[1].__defaults).to.deep.equal(c3.s.s[1].__defaults);
+
+      chai.expect(c3.toJSON({attachState: true})).to.deep.equal(c2.toJSON({attachState: true}));
+      chai.expect(c2.toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+
     });
 
     it('should load throw syntax error', async () => {
@@ -1040,7 +1105,6 @@ describe('ConfigClass', () => {
 
 
     });
-
 
     it('should not set', async () => {
       @ConfigClass()

@@ -1,6 +1,6 @@
 {
   "name": "typeconfig",
-  "version": "2.2.11",
+  "version": "2.2.13",
   "description": "Config loader for Typescript",
   "main": "common.js",
   "scripts": {
