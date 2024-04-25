@@ -1,4 +1,4 @@
-import {IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
+import {IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState';
 import {SubClassOptions} from '../SubClassOptions';
 
 
@@ -41,6 +41,23 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
   __options: SubClassOptions<TAGS>;
 
   clone<T>(): T & IConfigClassBase<TAGS>;
+
+
+  /**
+   * Adds a new property dynamically.
+   * Intended to be used from the GenericConfigType
+   * @param name
+   * @param options
+   * @param value
+   */
+  __addPropertyDynamically<T, C, TAGS = { [key: string]: any }>(name: string, options: PropertyOptions<T, C, TAGS>, value: any): void;
+
+  /**
+   * Set up the default of a newly added property.
+   * used in the base class ctor and in GenericConfigType
+   * @param propertyName
+   */
+  __setDefFromValue(propertyName: string): void;
 
   __getNewInstance<T>(): T & IConfigClassPrivateBase<TAGS>;
 

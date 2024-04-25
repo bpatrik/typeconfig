@@ -1,4 +1,7 @@
 import {SubConfigClass} from './decorators/class/SubConfigClass';
+import {PropertyOptions} from './decorators/property/IPropertyState';
+import {ConfigProperty} from './decorators/property/ConfigPropoerty';
+import {IConfigClassPrivateBase} from './decorators/class/base/IConfigClassBase';
 
 
 @SubConfigClass()
@@ -11,4 +14,6 @@ export class GenericConfigType {
     // @ts-ignore
     this.__isGenericConfigType = true;
   }
+
+
 }

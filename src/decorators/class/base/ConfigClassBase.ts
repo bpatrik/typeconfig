@@ -1,5 +1,5 @@
 import {IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase';
-import {Enum, IPropertyMetadata, propertyTypes} from '../../property/IPropertyState';
+import {Enum, IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState';
 import {ConstraintError} from '../../exceptions/ConstraintError';
 import {Utils} from '../../../Utils';
 import {SubClassOptions} from '../SubClassOptions';
@@ -44,30 +44,57 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           Object.assign(this.__state[key].tags, options.tags);
         }
       }
-      for (const key of Object.keys(this.__state)) {
-        if (typeof this.__state[key].value === 'undefined') {
-          continue;
-        }
-        this.__state[key].default = this.__state[key].value;
-        this.__state[key].hardDefault = this.__state[key].value;
-        if (this.__state[key].value) {
-          if (typeof this.__state[key].value.__defaults !== 'undefined') {
-            this.__state[key].default = this.__state[key].value.__defaults;
-            this.__state[key].hardDefault = this.__state[key].value.__defaults;
-          } else {
-            // defaults should only be plain jsons, no config classes
-            if (this.__state[key].value.toJSON) {
-              this.__state[key].default = this.__state[key].value.toJSON();
-              this.__state[key].hardDefault = this.__state[key].value.toJSON();
-            } else {
-              this.__state[key].default = JSON.parse(JSON.stringify(this.__state[key].value));
-              this.__state[key].hardDefault = JSON.parse(JSON.stringify(this.__state[key].value));
-            }
-          }
-        }
-        //   console.log(key, this.__state[key].hardDefault, this.__state[key].value);
+      for (const propertyName of Object.keys(this.__state)) {
+        this.__setDefFromValue(propertyName);
       }
       this.__created = true;
+    }
+
+    static isConfigClassBaseCtor(ctor: any) {
+      return ctor
+        && ctor.prototype
+        && typeof ctor.prototype.__loadJSONObject === 'function'
+        && typeof ctor.prototype.toJSON === 'function';
+    }
+
+    static isConfigClassBase(value: any) {
+      return value
+        && typeof value.__loadJSONObject === 'function'
+        && typeof value.toJSON === 'function';
+    }
+
+
+    __addPropertyDynamically<T, C, TAGS = { [key: string]: any }>(name: string, options: PropertyOptions<T, C, TAGS>, value: any): void {
+      if (!this.__isGenericConfigType) {
+        throw new Error('Unintended use. Use it from Generic config classes.');
+      }
+      Object.defineProperty(this, name, ConfigProperty(options)(this, name));
+      (this as any)[name] = value;
+      // (this as unknown as IConfigClassPrivateBase<TAGS>).__setDefFromValue(name);
+    }
+
+    __setDefFromValue(propertyName: string): void {
+
+      if (typeof this.__state[propertyName].value === 'undefined') {
+        return;
+      }
+      this.__state[propertyName].default = this.__state[propertyName].value;
+      this.__state[propertyName].hardDefault = this.__state[propertyName].value;
+      if (this.__state[propertyName].value) {
+        if (typeof this.__state[propertyName].value.__defaults !== 'undefined') {
+          this.__state[propertyName].default = this.__state[propertyName].value.__defaults;
+          this.__state[propertyName].hardDefault = this.__state[propertyName].value.__defaults;
+        } else {
+          // defaults should only be plain jsons, no config classes
+          if (this.__state[propertyName].value.toJSON) {
+            this.__state[propertyName].default = this.__state[propertyName].value.toJSON();
+            this.__state[propertyName].hardDefault = this.__state[propertyName].value.toJSON();
+          } else {
+            this.__state[propertyName].default = JSON.parse(JSON.stringify(this.__state[propertyName].value));
+            this.__state[propertyName].hardDefault = JSON.parse(JSON.stringify(this.__state[propertyName].value));
+          }
+        }
+      }
     }
 
     get __options(): SubClassOptions<TAGS> {
@@ -84,19 +111,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         ret[key] = this.__state[key].default;
       }
       return ret;
-    }
-
-    static isConfigClassBaseCtor(ctor: any) {
-      return ctor
-        && ctor.prototype
-        && typeof ctor.prototype.__loadJSONObject === 'function'
-        && typeof ctor.prototype.toJSON === 'function';
-    }
-
-    static isConfigClassBase(value: any) {
-      return value
-        && typeof value.__loadJSONObject === 'function'
-        && typeof value.toJSON === 'function';
     }
 
     __getNavigatableState() {
@@ -237,6 +251,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         } else if (this.__state[key].value &&
           typeof this.__state[key].value.__loadJSONObject !== 'undefined') {
+          // if we load a GenericType into an already existing genereic type
+          // NOTE: __state is removed if it's not a Generic type
+          if ((sourceObject[key] as { __state: unknown }).__state) {
+            this.__state[key].value.__populateGenericTypeFromState(sourceObject[key]);
+          }
           changed = this[key].__loadJSONObject(sourceObject[key], setToReadonly, skipValidation) || changed;
 
         } else if (this.__state[key].type === 'object') {
@@ -401,7 +420,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
                         type?: propertyTypes,
                         isEnumType?: boolean, isConfigType?: boolean
                       }): any {
-
       if (typeof newValue === 'undefined' || newValue == null) {
         return newValue;
       }
@@ -514,7 +532,6 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       }
 
       if (isConfigType === true) {
-
         if (propState && propState.value &&
           (!propState.typeBuilder || propState.typeBuilder(propState.value) === type) &&
           typeof propState.value.__loadJSONObject !== 'undefined') {
@@ -522,7 +539,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           return propState.value;
         }
 
-        if (!ConfigClassBaseType.isConfigClassBase(newValue)) {
+        if (!ConfigClassBaseType.isConfigClassBase(newValue)) { // it's not an object, but a json
           const o: ConfigClassBaseType = build();
           if (typeof propState.value === 'undefined' &&
             o.__isGenericConfigType &&

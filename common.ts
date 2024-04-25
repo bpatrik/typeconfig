@@ -6,3 +6,4 @@ export {ConfigDefaults} from './src/decorators/property/ConfigDefaults';
 export {ConfigState} from './src/decorators/property/ConfigState';
 export {SubConfigClass} from './src/decorators/class/SubConfigClass';
 export {GenericConfigType} from './src/GenericConfigType';
+export {ConfigMap, IConfigMap} from './src/ConfigMap';
