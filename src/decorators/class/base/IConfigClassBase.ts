@@ -52,6 +52,10 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
    */
   __addPropertyDynamically<T, C, TAGS = { [key: string]: any }>(name: string, options: PropertyOptions<T, C, TAGS>, value: any): void;
 
+  __removePropertyDynamically(name: string): void;
+
+  __keys(): string[];
+
   /**
    * Set up the default of a newly added property.
    * used in the base class ctor and in GenericConfigType

@@ -73,6 +73,18 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       // (this as unknown as IConfigClassPrivateBase<TAGS>).__setDefFromValue(name);
     }
 
+    __removePropertyDynamically(name: string): void {
+      if (!this.__isGenericConfigType) {
+        throw new Error('Unintended use. Use it from Generic config classes.');
+      }
+      delete this.__state[name];
+      delete this[name];
+    }
+
+    __keys(): string[] {
+      return Object.keys(this.__state);
+    }
+
     __setDefFromValue(propertyName: string): void {
 
       if (typeof this.__state[propertyName].value === 'undefined') {
