@@ -369,7 +369,7 @@ describe('GenericConfigType', () => {
       chai.expect(c.a).to.deep.equal(3);
       chai.expect(c.__isDefault()).to.deep.equal(true);
 
-      c.inner.addPropertyDynamically('test', {type: Sub}, new Sub());
+      c.inner.addProperty('test', {type: Sub}, new Sub());
       chai.expect((c.inner as any).test.b).to.deep.equal('inner string');
 
       const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
@@ -419,7 +419,7 @@ describe('GenericConfigType', () => {
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       c.loadSync();
-      c.inner.addPropertyDynamically('dynamicTest', {type: Sub}, new Sub());
+      c.inner.addProperty('dynamicTest', {type: Sub}, new Sub());
       c.a = 10;
       (c.inner as any).dynamicTest.b = 'test';
       chai.expect((c.inner as any).dynamicTest.__state['b']?.value).to.deep.equal('test');
@@ -489,8 +489,8 @@ describe('GenericConfigType', () => {
 
       c.main.arr.push(new Sub());
       c.main.arr.push(new Sub());
-      c.main.arr[0].sub.addPropertyDynamically('testProp', {type: SubSub1}, new SubSub1());
-      c.main.arr[1].sub.addPropertyDynamically('testProp2', {type: SubSub2}, new SubSub2());
+      c.main.arr[0].sub.addProperty('testProp', {type: SubSub1}, new SubSub1());
+      c.main.arr[1].sub.addProperty('testProp2', {type: SubSub2}, new SubSub2());
 
 
       chai.expect(c.toJSON()).to.deep.equal({
@@ -568,10 +568,10 @@ describe('GenericConfigType', () => {
 
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       c.loadSync();
-      c.inner.addPropertyDynamically('subProp', {type: Sub}, new Sub());
+      c.inner.addProperty('subProp', {type: Sub}, new Sub());
       c.a = 10;
       (c.inner as Sub).b = 'test';
-      (c.inner as any).subProp.subSub.addPropertyDynamically('subSubProp', {type: SubSub}, new SubSub());
+      (c.inner as any).subProp.subSub.addProperty('subSubProp', {type: SubSub}, new SubSub());
       (c.inner as any).subProp.subSub.subSubProp.c = 'test2';
 
       const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());

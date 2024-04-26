@@ -3,7 +3,7 @@ import {PropertyOptions} from './decorators/property/IPropertyState';
 import {IConfigClassPrivateBase} from './decorators/class/base/IConfigClassBase';
 import {GenericConfigType} from './GenericConfigType';
 
-export interface IConfigMap<V> {
+export interface IConfigMap<V = any> {
   [key: string]: V | Function;
 
   addProperty?<T, C, TAGS>(name: string, options: PropertyOptions<T, C, TAGS>, value: V): void;
@@ -17,7 +17,7 @@ export interface IConfigMap<V> {
  * This class is exactly the same as a GenericConfigType, only it exposes the addPropertyDynamically
  */
 @SubConfigClass()
-export class ConfigMap<V> extends GenericConfigType implements IConfigMap<V> {
+export class ConfigMap<V = any> extends GenericConfigType implements IConfigMap<V> {
   [key: string]: V | Function;
 
   constructor() {
