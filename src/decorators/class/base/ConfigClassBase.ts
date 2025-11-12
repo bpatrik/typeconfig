@@ -7,7 +7,6 @@ import {Loader} from '../../../Loader';
 import {checkIsConfigType} from '../../checkIsConfigType';
 import {ConfigProperty} from '../../property/ConfigPropoerty';
 
-
 export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructorFunction: new (...args: any[]) => any,
                                                                      options: SubClassOptions<TAGS>) {
   if (typeof options === 'undefined') {
@@ -122,9 +121,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
               this.__state[propertyName].hardDefault = JSON.parse(JSON.stringify(this.__state[propertyName].value));
             }
           } catch (e) {
-            console.error(`Can't set def value for "${propertyName}", value : `, this.__state[propertyName]?.value);
-            throw new Error(`Error setting default value for "${propertyName}" (path: ${this.__propPath}, name: ${this.__propName}) : `
-              + e);
+            console.error(`Can't set default value for "${propertyName}", value : `, this.__state[propertyName]?.value);
+            console.error(e);
           }
         }
       }
