@@ -50,6 +50,22 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       this.__created = true;
     }
 
+    get __options(): SubClassOptions<TAGS> {
+      return options;
+    }
+
+    get __defaults() {
+      const ret: { [key: string]: any } = {};
+
+      for (const key of Object.keys(this.__state)) {
+        if (typeof this.__state[key].default === 'undefined') {
+          continue;
+        }
+        ret[key] = this.__state[key].default;
+      }
+      return ret;
+    }
+
     static isConfigClassBaseCtor(ctor: any) {
       return ctor
         && ctor.prototype
@@ -63,12 +79,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         && typeof value.toJSON === 'function';
     }
 
-
-    __addPropertyDynamically<T, C, TAGS = { [key: string]: any }>(name: string, options: PropertyOptions<T, C, TAGS>, value: any): void {
+    __addPropertyDynamically<T, C, TGS = { [key: string]: any }>(name: string, opts: PropertyOptions<T, C, TGS>, value: any): void {
       if (!this.__isGenericConfigType) {
         throw new Error('Unintended use. Use it from Generic config classes.');
       }
-      Object.defineProperty(this, name, ConfigProperty(options)(this, name));
+      Object.defineProperty(this, name, ConfigProperty(opts)(this, name));
       (this as any)[name] = value;
       // (this as unknown as IConfigClassPrivateBase<TAGS>).__setDefFromValue(name);
     }
@@ -97,32 +112,20 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           this.__state[propertyName].default = this.__state[propertyName].value.__defaults;
           this.__state[propertyName].hardDefault = this.__state[propertyName].value.__defaults;
         } else {
-          // defaults should only be plain jsons, no config classes
-          if (this.__state[propertyName].value.toJSON) {
-            this.__state[propertyName].default = this.__state[propertyName].value.toJSON();
-            this.__state[propertyName].hardDefault = this.__state[propertyName].value.toJSON();
-          } else {
-            this.__state[propertyName].default = JSON.parse(JSON.stringify(this.__state[propertyName].value));
-            this.__state[propertyName].hardDefault = JSON.parse(JSON.stringify(this.__state[propertyName].value));
+          try {
+            // defaults should only be plain jsons, no config classes
+            if (this.__state[propertyName].value.toJSON) {
+              this.__state[propertyName].default = this.__state[propertyName].value.toJSON();
+              this.__state[propertyName].hardDefault = this.__state[propertyName].value.toJSON();
+            } else {
+              this.__state[propertyName].default = JSON.parse(JSON.stringify(this.__state[propertyName].value));
+              this.__state[propertyName].hardDefault = JSON.parse(JSON.stringify(this.__state[propertyName].value));
+            }
+          } catch (e) {
+            throw new Error('Error setting default value for ' + propertyName + ': ' + e);
           }
         }
       }
-    }
-
-    get __options(): SubClassOptions<TAGS> {
-      return options;
-    }
-
-    get __defaults() {
-      const ret: { [key: string]: any } = {};
-
-      for (const key of Object.keys(this.__state)) {
-        if (typeof this.__state[key].default === 'undefined') {
-          continue;
-        }
-        ret[key] = this.__state[key].default;
-      }
-      return ret;
     }
 
     __getNavigatableState() {
