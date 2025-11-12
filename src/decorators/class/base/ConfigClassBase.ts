@@ -122,7 +122,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
               this.__state[propertyName].hardDefault = JSON.parse(JSON.stringify(this.__state[propertyName].value));
             }
           } catch (e) {
-            throw new Error('Error setting default value for ' + propertyName + ': ' + e);
+            throw new Error(`Error setting default value for "${propertyName}" (path: ${this.__propPath}, name: ${this.__propName}) : `
+              + e);
           }
         }
       }
