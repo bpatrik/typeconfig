@@ -1,0 +1,9 @@
+{
+  // Compiles the sources and the specs to CommonJS into build/test/cjs
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../build/test/cjs",
+    "noEmit": false
+  }
+}

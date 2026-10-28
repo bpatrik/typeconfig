@@ -1,5 +1,5 @@
 export function ConfigDefaults(): any {
-  return (target: any, property: string): any => {
+  return (_target: any, _property: string): any => {
     return {
       get: function () {
         return this.__defaults;

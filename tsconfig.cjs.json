@@ -1,0 +1,23 @@
+{
+  // CommonJS build of the published package (dist/cjs), used through the "require" condition
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "types": [
+      "node"
+    ],
+    "rootDir": ".",
+    "outDir": "dist/cjs",
+    "declaration": true,
+    // the library itself does not read decorator metadata, only the consumer's classes do
+    "emitDecoratorMetadata": false,
+    "noEmit": false
+  },
+  "include": [
+    "common.ts",
+    "node.ts",
+    "web.ts",
+    "src/**/*.ts"
+  ]
+}

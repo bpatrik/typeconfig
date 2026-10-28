@@ -1,25 +1,44 @@
 {
-  "compileOnSave": true,
+  // Base config used by the editor, type checking and ESLint.
+  // The published builds use tsconfig.cjs.json and tsconfig.esm.json, the tests use test/tsconfig.*.json.
   "compilerOptions": {
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "importHelpers": true,
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      // WebConfigLoader reads window.location
+      "DOM"
+    ],
+    // Node20 allows the CommonJS test build to require() the ESM-only chai
+    "module": "Node20",
+    "moduleResolution": "Node16",
+    "types": [
+      "node",
+      "mocha"
+    ],
     "noImplicitAny": true,
-    "downlevelIteration": true,
-    "module": "commonjs",
-    "target": "es2017",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "declaration": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    // the property decorators install getters/setters on the prototype; [[Define]] class fields would shadow them
+    "useDefineForClassFields": false,
+    "sourceMap": true,
+    "inlineSources": true,
+    "noEmit": true
   },
-  "lib": [
-    "es2020",
-    "dom"
-  ],
-  "exclude": [
-    "node_modules",
-    "example"
+  // lets mocha run the .ts specs directly (.mocharc.json, npm run test:ts):
+  // the resolver maps the '.js' import specifiers to the .ts sources
+  "ts-node": {
+    "experimentalResolver": true
+  },
+  "include": [
+    "common.ts",
+    "node.ts",
+    "web.ts",
+    "src/**/*.ts",
+    "test/**/*.ts"
   ]
 }

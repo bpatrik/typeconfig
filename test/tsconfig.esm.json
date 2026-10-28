@@ -1,0 +1,9 @@
+{
+  // Compiles the sources and the specs to ES modules into build/test/esm
+  "extends": "./tsconfig.cjs.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "../build/test/esm"
+  }
+}

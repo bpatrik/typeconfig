@@ -1,15 +1,15 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
-import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
-import {WebConfigClassBuilder} from '../../src/decorators/builders/WebConfigClassBuilder';
-import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
-import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty.js';
+import {WebConfigClass} from '../../src/decorators/class/WebConfigClass.js';
+import {WebConfigClassBuilder} from '../../src/decorators/builders/WebConfigClassBuilder.js';
+import {SubConfigClass} from '../../src/decorators/class/SubConfigClass.js';
+import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase.js';
 
-const chai: any = require('chai');
-const chaiAsPromised = require('chai-as-promised');
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
+import chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
-const should = chai.should();
 
 describe('WebConfigClass', () => {
 

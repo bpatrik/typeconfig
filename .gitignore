@@ -1,12 +1,18 @@
-# Created by .ignore support plugin (hsz.mobi)
 .idea/
 TypeConfig.iml
-/**/*.js
-/**/*.js.map
-/**/*.d.ts
-!karma.conf.js
 node_modules/
+# build output
+dist/
+build/
 coverage/
-tmp_test/
-mock*
-.nyc_output/
+# compatibility shims written by the build (scripts/write-root-shims.mjs) and stale output of the old in-place build
+/*.js
+/*.js.map
+/*.d.ts
+/src/**/*.js
+/src/**/*.js.map
+/src/**/*.d.ts
+/test/**/*.js
+/test/**/*.js.map
+/test/**/*.d.ts
+*.tgz

@@ -1,8 +1,8 @@
-import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase';
-import {ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
-import * as fs from 'fs';
-import {promises as fsp} from 'fs';
-import * as path from 'path';
+import type {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase.js';
+import type {ConfigClassOptionsBase} from './base/AbstractRootConfigClass.js';
+import type * as fs from 'fs';
+import type {promises as fsp} from 'fs';
+import type * as path from 'path';
 
 
 export interface ConfigCLIOptions {

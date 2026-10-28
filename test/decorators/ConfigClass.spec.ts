@@ -1,19 +1,20 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass} from '../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
-import {TestHelper} from '../TestHelper';
+import {ConfigClass} from '../../src/decorators/class/ConfigClass.js';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty.js';
+import {TestHelper} from '../TestHelper.js';
 import {promises as fsp} from 'fs';
-import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
-import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
-import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
-import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
-import {WebConfigClassBuilder} from '../../web';
-import {GenericConfigType} from '../../src/GenericConfigType';
-import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase';
+import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder.js';
+import {SubConfigClass} from '../../src/decorators/class/SubConfigClass.js';
+import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/class/IConfigClass.js';
+import {WebConfigClass} from '../../src/decorators/class/WebConfigClass.js';
+import {WebConfigClassBuilder} from '../../web.js';
+import {GenericConfigType} from '../../src/GenericConfigType.js';
+import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase.js';
 
-const chai: any = require('chai');
-const chaiAsPromised = require('chai-as-promised');
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
+import chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
 
 describe('ConfigClass', () => {
@@ -208,7 +209,8 @@ describe('ConfigClass', () => {
     chai.expect((c.__state as any).main.value[0].__state.a.tags.name).to.deep.equal(['main name']);
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
     chai.expect((wc.__state as any).main.value[0].__state.a.tags.extraTag).to.deep.equal('test');
-    chai.expect(((wc.clone() as IConfigClassPrivateBase<{}>).__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
+    const cloned = wc.clone() as IConfigClassPrivateBase<Record<string, unknown>>;
+    chai.expect((cloned.__state as any).main.value[0].__state.a.tags.name).to.deep.equal('web name');
   });
 
   it('should JSON skip default values should not change value', () => {
@@ -436,6 +438,37 @@ describe('ConfigClass', () => {
 
   describe('man page', () => {
 
+    it('should print the enabled meta switches and the options', () => {
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty({envAlias: 'A_VERY_LONG_ENV_ALIAS_NAME', description: 'sub value'})
+        n: number = 1;
+      }
+
+      @ConfigClass({cli: {enable: {configPath: true, saveIfNotExist: true}}})
+      class C {
+        @ConfigProperty({description: 'a number'})
+        num: number = 5;
+
+        @ConfigProperty()
+        sub: Sub = new Sub();
+      }
+
+      const man = ConfigClassBuilder.attachPrivateInterface(new C()).__printMan();
+      chai.expect(man).to.contain('--config-path');
+      chai.expect(man).to.contain('--config-save-if-not-exist');
+      chai.expect(man).to.not.contain('--config-attachState');
+      chai.expect(man).to.contain('a number (default: 5)');
+      chai.expect(man).to.contain('--sub-n');
+      // the env aliases of sub configs are padded together with the option names
+      const envSection = man.split('Environmental variables:')[1].split('\n');
+      const nameLine = envSection.find((l) => l.trim().startsWith('sub-n'));
+      const aliasLine = envSection.find((l) => l.includes('A_VERY_LONG_ENV_ALIAS_NAME'));
+      chai.expect(aliasLine).to.contain('same as sub-n');
+      chai.expect(nameLine.indexOf('sub value')).to.equal(aliasLine.indexOf(' same as'));
+    });
+
     it('should print default override options', () => {
 
       @ConfigClass({cli: {defaults: {enabled: true}}})
@@ -551,6 +584,45 @@ describe('ConfigClass', () => {
   });
 
 
+  it('should tell if an array property has its default value', () => {
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({arrayType: 'integer'})
+      arr: number[] = [1, 2];
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    chai.expect(c.__isPropertyDefault('arr')).to.equal(true);
+    chai.expect(c.__isDefault()).to.equal(true);
+    c.arr = [1, 3];
+    chai.expect(c.__isPropertyDefault('arr')).to.equal(false);
+    c.arr = [1, 2, 3];
+    chai.expect(c.__isPropertyDefault('arr')).to.equal(false);
+    chai.expect(c.__isDefault()).to.equal(false);
+    c.arr = [1, 2];
+    chai.expect(c.__isPropertyDefault('arr')).to.equal(true);
+  });
+
+  it('should save through the injected fsPromise', async () => {
+    const written: { [path: string]: string } = {};
+    const fsPromise = {
+      writeFile: async (p: string, data: string) => {
+        written[p] = data;
+      }
+    };
+
+    @ConfigClass({configPath: 'virtual/config.json', fsPromise: <any>fsPromise})
+    class C {
+      @ConfigProperty()
+      num: number = 5;
+    }
+
+    const c = ConfigClassBuilder.attachInterface(new C());
+    await c.save();
+    chai.expect(JSON.parse(written['virtual/config.json'])).to.deep.equal({num: 5});
+  });
+
   describe('config file', () => {
 
     const filePath = TestHelper.getFilePath('testConf.json');
@@ -622,7 +694,7 @@ describe('ConfigClass', () => {
       @SubConfigClass()
       class Sub {
         @ConfigProperty({arrayType: Subsub})
-        s: (IConfigClassPrivate<{}> & Subsub)[] = [new Subsub(11) as any, new Subsub(15) as any];
+        s: (IConfigClassPrivate<Record<string, unknown>> & Subsub)[] = [new Subsub(11) as any, new Subsub(15) as any];
       }
 
 
@@ -632,7 +704,7 @@ describe('ConfigClass', () => {
         num: number = 5;
 
         @ConfigProperty({type: Sub})
-        s: IConfigClassPrivate<{}> & Sub = new Sub() as any;
+        s: IConfigClassPrivate<Record<string, unknown>> & Sub = new Sub() as any;
       }
 
 

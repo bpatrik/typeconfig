@@ -10,30 +10,60 @@ CLI arguments and environment variables, validated against property types/constr
 back to JSON (optionally with descriptions, defaults and state). It also has a browser-side variant
 for sharing a "public" subset of the config with a frontend.
 
-Only runtime dependency: `minimist`. Consumers must provide `reflect-metadata`
-(`import 'reflect-metadata'` before any decorated class), because `@ConfigProperty` infers types via
-`Reflect.getMetadata('design:type', ...)`.
+Only runtime dependency: `minimist`. If a `@ConfigProperty` has no explicit `type`, it is inferred via
+`Reflect.getMetadata('design:type', ...)`, so consumers then need `emitDecoratorMetadata` and
+`reflect-metadata` (`import 'reflect-metadata'` before any decorated class); without them the decorator
+throws an error naming the class and property. Consumers also need `experimentalDecorators` and
+`useDefineForClassFields: false`.
 
 ## Commands
 
 ```bash
-npm ci            # install
-npm run build     # tsc — compiles .ts to .js/.d.ts next to the sources (no outDir)
-npm test          # pretest runs tsc, then nyc mocha --recursive test (runs the compiled test/**/*.js)
+npm ci                # install
+npm run lint          # ESLint (eslint.config.mjs)
+npm run typecheck     # tsc --noEmit over sources and specs
+npm run build         # dist/cjs + dist/esm (+ the root compatibility shims)
+npm test              # compiles sources+specs to build/test/cjs and build/test/esm, runs mocha on both (c8 coverage on cjs)
+npm run test:package  # builds dist/, runs test/package/*.spec.mjs and attw (are-the-types-wrong)
+npm run test:ts       # runs the .ts specs directly through ts-node (no build), also: npx mocha test/Loader.spec.ts
 ```
 
-- Tests run against **compiled JS**, so always build (or just run `npm test`) after editing.
-- Compiled `*.js`, `*.js.map`, `*.d.ts` are git-ignored; never commit them.
-- CI: `.github/workflows/build.yml` runs `npm ci && npm run build && npm test` on Node 18/20/21.
-- Lint config is `tslint.json` (tslint is legacy but still the style reference); there is no lint script.
+- `npm test` runs against **compiled JS**, twice: as CommonJS and as ES modules. Specs must work in both
+  (no `__dirname`/`require`; use imports, `TestHelper` uses `os.tmpdir()`).
+- `.mocharc.json` (ts-node) is for running the `.ts` specs directly, e.g. from WebStorm. It needs
+  `"ts-node": {"experimentalResolver": true}` in `tsconfig.json` to map the `.js` imports to `.ts`.
+  The compiled runs pass `--no-config` to skip it. tsx can't run the specs: esbuild emits no decorator metadata.
+- Relative imports in `.ts` files must end in `.js` (needed by the ES module build).
+- Re-exported types need `export type`, types used in decorated signatures need `import type`
+  (`isolatedModules` is on, as it will be for the PiGallery2 frontend).
+- `dist/`, `build/`, `coverage/` and the generated root `common|node|web.js/.d.ts` shims are git-ignored; never commit them.
+- CI: `.github/workflows/build.yml` runs lint, `npm test` and `npm run test:package` on Node 20/22/24
+  (the dev tooling needs Node >= 20.19; the published code targets ES2022).
+
+## Packaging
+
+- `tsconfig.json` is the base (editor, typecheck, ESLint; `module: Node20`). `tsconfig.cjs.json` builds
+  `dist/cjs`, `tsconfig.esm.json` builds `dist/esm`; `test/tsconfig.{cjs,esm}.json` build the specs.
+  `scripts/mark-module-type.mjs` writes the `{"type": ...}` package.json into each output folder.
+- `package.json` `exports` map: `.`, `./common`, `./node`, `./web` with `import`/`require` conditions and
+  per-format types, plus `./src/*` for the legacy deep imports (deprecated, kept for compatibility).
+  `typesVersions` makes the same paths resolve for `moduleResolution: node` (node10), which PiGallery2's
+  backend uses.
+- `scripts/write-root-shims.mjs` writes root `common/node/web.js` + `.d.ts` that re-export `dist/cjs`, for
+  consumers importing by file path (PiGallery2's `ConfigDiagnostics.ts` imports
+  `../../../../node_modules/typeconfig/node`).
+- `"sideEffects": false`: the modules only declare classes/functions; keep it that way.
+- `typeconfig/common` and `typeconfig/web` must not pull in Node built-ins or `minimist`;
+  `test/package/package.spec.mjs` bundles them with esbuild for the browser to check it.
 
 ## Layout
 
-Entry points (package root, `main` is `common.js`):
+Entry points (package root, compiled to `dist/{cjs,esm}`):
 - `common.ts` — environment-agnostic exports (`ConfigProperty`, `SubConfigClass`, `ConfigDefaults`,
-  `ConfigState`, `GenericConfigType`, `ConfigMap`, both builders and both root decorators, types).
-- `node.ts` — Node-only: `ConfigClass`, `ConfigClassBuilder`.
-- `web.ts` — browser: `WebConfigClass`, `WebConfigClassBuilder`.
+  `ConfigState`, `ConstraintError`, `GenericConfigType`, `ConfigMap`) and the public/private interfaces
+  and option types (`IConfigClass(Private)`, `IWebConfigClass(Private)`, `ConfigClassOptions`, `ToJSONOptions`, ...).
+- `node.ts` — Node-only: `ConfigClass`, `ConfigClassBuilder` (+ the node option types).
+- `web.ts` — browser: `WebConfigClass`, `WebConfigClassBuilder` (+ the web option types).
 
 `src/`:
 - `decorators/class/base/ConfigClassBase.ts` — **the core** (~1000 lines). Mixin that wraps a user class
@@ -104,7 +134,20 @@ Local checkouts live next to this repo (`../PiGallery2`, `../xlf-google-translat
 - **Deep-imports compiled files:** `typeconfig/src/GenericConfigType`,
   `src/decorators/builders/{ConfigClassBuilder,WebConfigClassBuilder}`,
   `src/decorators/class/{IConfigClass,IWebConfigClass,SubConfigClass,WebConfigClass}`,
-  `src/decorators/property/ConfigPropoerty`.
+  `src/decorators/property/ConfigPropoerty` (served by the `./src/*` export), and one file path import
+  (`../../../../node_modules/typeconfig/node`, served by the root shim). Everything it deep-imports is
+  also exported from the entry points, so it can move off the deep imports (task T2 of
+  [PiGallery2 #1219](https://github.com/bpatrik/pigallery2/issues/1219)).
+- Its backend compiles with `moduleResolution: node` (node10), the Angular frontend with `bundler`
+  (and plans `isolatedModules` without `emitDecoratorMetadata`, task T3).
+- Loading server and client config classes in one process trips a constraint: subclasses add their
+  properties to the parent prototype's shared `__state` (ConfigPropoerty.ts uses `target.__state`
+  inherited from the parent). Changing that is a behaviour change; verify against PiGallery2.
+
+How to verify a change against PiGallery2: `npm pack`, move its `node_modules/typeconfig` aside, extract
+the tarball there, then run its `npx tsc`, `TEST_MYSQL=false npx mocha test --exclude "test/cypress/**/*.js"
+--exclude folder-reset.js` and `npx ng build --configuration=dev --watch=false --output-path=<tmp>`,
+compare `__printMan()` and `JSON.stringify(config)` of `PrivateConfigClass`, then restore the folder.
 
 **xlf-google-translate** (`typeconfig` 2.3.1) — the simple, typical case: one `@ConfigClass` with
 `@SubConfigClass` children, the same CLI options block as PiGallery2,
@@ -112,6 +155,7 @@ Local checkouts live next to this repo (`../PiGallery2`, `../xlf-google-translat
 Imports only `typeconfig/node` and `typeconfig/common`.
 
 Implications for changes here:
+- Removing the `./src/*` export, the `typesVersions` or the root shims is a **breaking change** (major version).
 - Renaming/moving files under `src/` (including the misspelled `ConfigPropoerty.ts`) or the names of
   `__state`/`__options`/`__propPath` and `IPropertyMetadata` fields is a **breaking change**.
 - Keep the shape of `toJSON` output (descriptions as `//[prop]`, `__state` with `attachState`), the
@@ -133,7 +177,7 @@ uncommitted for review like any other).
 ## Code style
 
 - 2-space indent, single quotes, max line length 140, curly braces always, UTF-8, final newline
-  (`.editorconfig`, `tslint.json`).
+  (`.editorconfig`, `eslint.config.mjs`).
 - Imports use `{Name}` without inner spaces; explicit `typeof x === 'undefined'` checks are the norm.
 - `noImplicitAny` is on; `<any>` casts are common in decorator plumbing — follow the surrounding code.
 - Tests: one `describe` per class, decorated classes declared inline inside each `it`, assertions via
@@ -141,8 +185,12 @@ uncommitted for review like any other).
 
 ## Gotchas
 
-- Decorator order/metadata matters: `emitDecoratorMetadata` + `experimentalDecorators` are required, and
-  arrays of enums/config classes need `arrayType` set explicitly (it can't be inferred).
+- Decorator order/metadata matters: `experimentalDecorators` and `useDefineForClassFields: false` are required
+  (also in this repo's tsconfig: target ES2022 would default it to `true` and class fields would shadow the
+  decorators' accessors); `emitDecoratorMetadata` is needed for inferred types. Arrays of enums/config classes
+  need `arrayType` set explicitly (it can't be inferred).
+- The explicit type annotations of config properties (`num: number = 5`) feed `design:type`, which is why
+  ESLint's `no-inferrable-types` is off. Don't remove them.
 - Decorators return mixin subclasses of the user class (deep prototype chain); `__getNewInstance`
   must be overridden in each root decorator so `clone()` builds the decorated type.
 - `ConfigClass` reads `process.argv` (incl. `--help`, which calls `process.exit`) at decoration and

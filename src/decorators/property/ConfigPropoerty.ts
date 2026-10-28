@@ -1,12 +1,39 @@
-import {IPropertyMetadata, PropertyOptions} from './IPropertyState';
-import {Utils} from '../../Utils';
-import {checkIsConfigType} from '../checkIsConfigType';
+import type {IPropertyMetadata, PropertyOptions, propertyTypes} from './IPropertyState.js';
+import {Utils} from '../../Utils.js';
+import {checkIsConfigType} from '../checkIsConfigType.js';
+
+/**
+ * Reflect, as extended by the reflect-metadata polyfill. The polyfill is optional,
+ * it is only needed if a property's type is inferred from the decorator metadata.
+ */
+type MetadataReflect = typeof Reflect & {
+  getMetadata?: (metadataKey: string, target: object, propertyKey: string) => unknown
+};
+
+/**
+ * Infers the type of the property from the 'design:type' metadata that TypeScript emits with emitDecoratorMetadata
+ */
+const inferType = (target: any, property: string): propertyTypes => {
+  const reflect = Reflect as MetadataReflect;
+  const name = (target?.constructor?.name || '<anonymous>') + '.' + property;
+  if (typeof reflect.getMetadata !== 'function') {
+    throw new Error('typeconfig: cannot infer the type of "' + name + '", Reflect.getMetadata is not available. ' +
+      'Set the "type" option of @ConfigProperty, or import \'reflect-metadata\' before the config classes ' +
+      'and enable "emitDecoratorMetadata".');
+  }
+  const type = reflect.getMetadata('design:type', target, property);
+  if (typeof type === 'undefined') {
+    throw new Error('typeconfig: cannot infer the type of "' + name + '", there is no "design:type" metadata. ' +
+      'Set the "type" option of @ConfigProperty, or enable "emitDecoratorMetadata".');
+  }
+  return type as propertyTypes;
+};
 
 export function ConfigProperty<T, C, TAGS = { [key: string]: any }>(options: PropertyOptions<T, C, TAGS> = {}) {
   return (target: any, property: string): any => {
-    let type = options.type;
+    let type: propertyTypes = options.type;
     if (typeof type === 'undefined') {
-      type = Reflect.getMetadata('design:type', target, property);
+      type = inferType(target, property);
     }
     switch (type) {
       case Array:
@@ -45,10 +72,7 @@ export function ConfigProperty<T, C, TAGS = { [key: string]: any }>(options: Pro
     if (isConfigType) {
       state[property].isConfigType = isConfigType;
     }
-    const isConfigArrayType = (<any>state[property].arrayType) &&
-      (<any>state[property].arrayType).prototype
-      && typeof (<any>state[property].arrayType).prototype.__loadJSONObject === 'function'
-      && typeof (<any>state[property].arrayType).prototype.toJSON === 'function';
+    const isConfigArrayType = checkIsConfigType((<any>state[property].arrayType)?.prototype);
     if (isConfigArrayType) {
       state[property].isConfigArrayType = isConfigArrayType;
     }

@@ -1,11 +1,11 @@
-import {IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase';
-import {Enum, IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState';
-import {ConstraintError} from '../../exceptions/ConstraintError';
-import {Utils} from '../../../Utils';
-import {SubClassOptions} from '../SubClassOptions';
-import {Loader} from '../../../Loader';
-import {checkIsConfigType} from '../../checkIsConfigType';
-import {ConfigProperty} from '../../property/ConfigPropoerty';
+import type {IConfigClassPrivateBase, ToJSONOptions} from './IConfigClassBase.js';
+import {Enum, IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState.js';
+import {ConstraintError} from '../../exceptions/ConstraintError.js';
+import {Utils} from '../../../Utils.js';
+import type {SubClassOptions} from '../SubClassOptions.js';
+import {Loader} from '../../../Loader.js';
+import {checkIsConfigType} from '../../checkIsConfigType.js';
+import {ConfigProperty} from '../../property/ConfigPropoerty.js';
 
 export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructorFunction: new (...args: any[]) => any,
                                                                      options: SubClassOptions<TAGS>) {
@@ -259,7 +259,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
               if (typeof sourceObject[key] === 'string' && Array.isArray(JSON.parse(sourceObject[key]))) {
                 sourceObject[key] = JSON.parse(sourceObject[key]);
               }
-            } catch (e) {
+            } catch {
+              // not a JSON array, validation will handle it
             }
             set();
           }
@@ -346,7 +347,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
             this.__state[property].value.__inheritDefaultsFromParent(def);
           } else if (this.__state[property].isConfigArrayType) {
             for (let i = 0; i < this.__state[property].value.length; ++i) {
-              this.__state[property].value[i].__inheritDefaultsFromParent(def?.[i]);
+              this.__state[property].value[i]?.__inheritDefaultsFromParent(def?.[i]);
             }
           }
           if (isNaN(def) && !def) {
@@ -442,9 +443,15 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       const type: propertyTypes = typeof _typeState !== 'undefined' ? _typeState.type :
         (propState.typeBuilder ? propState.typeBuilder(newValue, this.__rootConfig) :
           propState.type);
-      // TODO make it work with type based builder
-      const build = () => {
-        return (_typeState?.build ? _typeState.build : (propState?.value?.clone ? propState?.value?.clone : () => new (<any>type)()))();
+      const build = (): ConfigClassBaseType => {
+        if (_typeState?.build) {
+          return _typeState.build();
+        }
+        // with a typeBuilder, the current value can be of a different type than the new one
+        if (propState?.value?.clone && !propState.typeBuilder) {
+          return propState.value.clone();
+        }
+        return new (<any>type)();
       };
       const isEnumType = typeof _typeState !== 'undefined' ? _typeState.isEnumType : propState.isEnumType;
       const isConfigType = typeof _typeState !== 'undefined' ? _typeState.isConfigType : propState.isConfigType;
@@ -474,11 +481,14 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         case 'float':
           checkRange();
           return floatValue;
-        case 'date':
-          if (typeof intValue === 'undefined' && isNaN(Date.parse(<any>newValue))) {
+        case 'date': {
+          // numbers are timestamps, strings are parsed
+          const date = new Date(<any>newValue);
+          if (isNaN(date.getTime())) {
             throw new TypeError(this.__getFulName(property) + ' should be a Date, got:' + newValue);
           }
-          return new Date(<any>newValue);
+          return date;
+        }
         case 'boolean':
           if (strValue.toLowerCase() === 'false' || <any>newValue === false) {
             return false;
@@ -610,7 +620,8 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
     toJSON(opt?: ToJSONOptions<TAGS>, lazyAttach = false): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options, function (this: any, key: string, value: any) {
-        if (!['path', 'fs', 'psPromise'].includes(key)) {
+        // skip the injected node modules of the ConfigClass options
+        if (!['path', 'fs', 'fsPromise'].includes(key)) {
           return value;
         }
       }));
@@ -840,11 +851,11 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         }
         if (Array.isArray(this.__state[property].hardDefault)) {
           const a = [];
-          for (let i = 0; i < this.__state[property].hardDefault.length; ++i) {
-            if (this.__state[property].hardDefault[i].__getDefault) {
-              a.push(this.__state[property].hardDefault[i].__getHardDefault());
+          for (const item of this.__state[property].hardDefault) {
+            if (item?.__getDefault) {
+              a.push(item.__getHardDefault());
             } else {
-              a.push(this.__state[property].hardDefault?.[i]);
+              a.push(item);
             }
           }
           return a;
@@ -870,7 +881,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
         if (Array.isArray(this.__state[property].value)) {
           const a = [];
           for (let i = 0; i < this.__state[property].value.length; ++i) {
-            if (this.__state[property].value[i].__getDefault) {
+            if (this.__state[property].value[i]?.__getDefault) {
               a.push(this.__state[property].value[i].__getDefault());
             } else {
               a.push(this.__state[property].default?.[i]);
@@ -901,10 +912,17 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
           return this.__state[property].value.__isDefault();
         }
         if (Array.isArray(this.__state[property].value)) {
-          for (let i = 0; i < this.__state[property].value.length; ++i) {
-            if (this.__state[property].value[i].__isDefault && !this.__state[property].value[i].__isDefault()) {
-              return false;
-            } else if (this.__state[property].default?.[i] !== this.__state[property].value) {
+          const value = this.__state[property].value;
+          const def = this.__state[property].default;
+          if (!Array.isArray(def) || def.length !== value.length) {
+            return false;
+          }
+          for (let i = 0; i < value.length; ++i) {
+            if (value[i]?.__isDefault) {
+              if (!value[i].__isDefault()) {
+                return false;
+              }
+            } else if (JSON.stringify(def[i]) !== JSON.stringify(value[i])) {
               return false;
             }
           }
@@ -931,7 +949,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
 
         }
         if (value && typeof value.__getLongestOptionName === 'function') {
-          max = Math.max(max, value.__getLongestOptionName());
+          max = Math.max(max, value.__getLongestOptionName(printENVAlias));
         }
       }
       return max;

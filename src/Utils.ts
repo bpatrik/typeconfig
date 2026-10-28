@@ -1,8 +1,8 @@
-import {Enum} from './decorators/property/IPropertyState';
+import {Enum} from './decorators/property/IPropertyState.js';
 
 export class Utils {
-  static isEnum(instance: Object): boolean {
-    if (!instance) {
+  static isEnum(instance: unknown): boolean {
+    if (!instance || typeof instance !== 'object') {
       return false;
     }
     const keys = Object.keys(instance);

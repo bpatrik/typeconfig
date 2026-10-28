@@ -1,4 +1,4 @@
-import {Loader} from './Loader';
+import {Loader} from './Loader.js';
 
 export class WebConfigLoader {
 
@@ -24,16 +24,12 @@ export class WebConfigLoader {
   }
 
   private static getUrlParams(): { [key: string]: any } {
-    let match;
-    const pl = /\+/g,  // Regex for replacing addition symbol with a space
-      search = /([^&=]+)=?([^&]*)/g,
-      decode = (s: string) => {
-        return decodeURIComponent(s.replace(pl, ' '));
-      },
-      query = window.location.search.substring(1);
+    // '+' stands for a space in the query string
+    const decode = (s: string) => decodeURIComponent(s.replace(/\+/g, ' '));
+    const query = window.location.search.substring(1);
 
     const urlParams: { [key: string]: any } = {};
-    while (match = search.exec(query)) {
+    for (const match of query.matchAll(/([^&=]+)=?([^&]*)/g)) {
       urlParams[decode(match[1])] = decode(match[2]);
     }
     return urlParams;

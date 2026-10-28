@@ -1,14 +1,20 @@
-import {ConfigLoader} from '../../ConfigLoader';
-import * as minimist from 'minimist';
-import {AbstractRootConfigClass} from './base/AbstractRootConfigClass';
-import {ConfigClassOptions, IConfigClassPrivate} from './IConfigClass';
+import {ConfigLoader} from '../../ConfigLoader.js';
+import minimist from 'minimist';
+import {AbstractRootConfigClass} from './base/AbstractRootConfigClass.js';
+import type {ConfigClassOptions, ConfigCLIOptions, IConfigClassPrivate} from './IConfigClass.js';
 import * as fs from 'fs';
 import {promises as fsp} from 'fs';
 import * as path from 'path';
 
 const debugMode = process.env.NODE_ENV === 'debug';
 
-const cliMap = {
+const debugLog = (message: string): void => {
+  if (debugMode === true) {
+    console.log('[Typeconfig] ' + message);
+  }
+};
+
+const cliMap: Required<{ [key in keyof ConfigCLIOptions]: string }> = {
   attachDescription: 'attachDesc',
   attachState: 'attachState',
   configPath: 'path',
@@ -19,19 +25,59 @@ const cliMap = {
   exitOnConfig: 'save-and-exist',
 };
 
-function parseCLIOptions<C, TAGS>(options: ConfigClassOptions<C, TAGS>) {
+/**
+ * Meta cli switches in the order they are printed by --help
+ */
+const cliManual: [keyof ConfigCLIOptions, string][] = [
+  ['configPath', 'sets the config file location'],
+  ['attachState', 'prints the value state (default, readonly, volatile, etc..) to the config file'],
+  ['attachDescription', 'prints description to the config file'],
+  ['rewriteCLIConfig', 'updates the config file with the options from cli switches'],
+  ['rewriteENVConfig', 'updates the config file with the options from environmental variables'],
+  ['enumsAsString', 'enums are stored as string in the config file (instead of numbers)'],
+  ['saveIfNotExist', 'creates config file if not exist'],
+  ['exitOnConfig', 'creates config file and terminates'],
+];
 
-  for (const key of Object.keys(cliMap)) {
-    const cliSwitch = (options.cli.prefix + '-' + (<any>cliMap)[key]);
-    if ((<any>options.cli.enable)[key] === true &&
-      typeof minimist(process.argv)[cliSwitch] !== 'undefined') {
-      (<any>options)[key] = minimist(process.argv)[cliSwitch] === 'true' ? true :
-        (minimist(process.argv)[cliSwitch] === 'false' ? false :
-          minimist(process.argv)[cliSwitch]);
+function parseCLIOptions<C, TAGS>(options: ConfigClassOptions<C, TAGS>) {
+  const argv = minimist(process.argv);
+  for (const key of Object.keys(cliMap) as (keyof ConfigCLIOptions)[]) {
+    const cliSwitch = options.cli.prefix + '-' + cliMap[key];
+    if (options.cli.enable[key] === true && typeof argv[cliSwitch] !== 'undefined') {
+      const value = argv[cliSwitch];
+      (<any>options)[key] = value === 'true' ? true : (value === 'false' ? false : value);
     }
   }
 
   return options;
+}
+
+/**
+ * Logs (and rethrows TypeErrors) when the config file cannot be read or parsed.
+ * A missing file is normal, a broken file is reported.
+ */
+function handleReadError(message: string, e: unknown, rethrowTypeError: boolean): void {
+  if (debugMode === true || e instanceof SyntaxError) {
+    console.log('[Typeconfig] ' + message);
+    console.error(e);
+  }
+  if (rethrowTypeError && e instanceof TypeError) {
+    throw e;
+  }
+}
+
+interface LoadOptions {
+  pathOverride?: string;
+  preventSaving?: boolean;
+}
+
+/**
+ * Tracks which of the cli and env inputs were already applied while loading
+ */
+interface ParsedInputs {
+  shouldSave: boolean;
+  cliParsed: boolean;
+  envParsed: boolean;
 }
 
 export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigClassOptions<C, TAGS> = {}): any {
@@ -62,46 +108,51 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       __loadCLIENVDefaults() {
         const cliConfig = ConfigLoader.getCLIArgsAsObject();
         const envConfig = ConfigLoader.getENVArgsAsObject(this.__getENVAliases());
+        const prefix = options.cli.defaults.prefix;
         if (debugMode === true) {
-          console.log('[Typeconfig] Loading defaults, def prefix: ' + options.cli.defaults.prefix);
-          if (cliConfig[options.cli.defaults.prefix]) {
-            console.log('[Typeconfig] from cli: ' + JSON.stringify(cliConfig[options.cli.defaults.prefix], null, '\t'));
+          debugLog('Loading defaults, def prefix: ' + prefix);
+          if (cliConfig[prefix]) {
+            debugLog('from cli: ' + JSON.stringify(cliConfig[prefix], null, '\t'));
           } else {
-            console.log('[Typeconfig] no default cli found among these: ' + JSON.stringify(cliConfig, null, '\t'));
+            debugLog('no default cli found among these: ' + JSON.stringify(cliConfig, null, '\t'));
           }
-          if (envConfig[options.cli.defaults.prefix]) {
-            console.log('[Typeconfig] from env: ' + JSON.stringify(envConfig[options.cli.defaults.prefix], null, '\t'));
+          if (envConfig[prefix]) {
+            debugLog('from env: ' + JSON.stringify(envConfig[prefix], null, '\t'));
           } else {
-            console.log('[Typeconfig] no default env found among these: ' + JSON.stringify(envConfig, null, '\t'));
+            debugLog('no default env found among these: ' + JSON.stringify(envConfig, null, '\t'));
           }
         }
-        if (options.cli.defaults.enabled === true && cliConfig[options.cli.defaults.prefix]) {
-          this.__loadDefaultsJSONObject(cliConfig[options.cli.defaults.prefix]);
-          this.__loadJSONObject(cliConfig[options.cli.defaults.prefix]);
+        if (options.cli.defaults.enabled === true && cliConfig[prefix]) {
+          this.__loadDefaultsJSONObject(cliConfig[prefix]);
+          this.__loadJSONObject(cliConfig[prefix]);
         }
-        if (options.cli.defaults.enabled === true && envConfig[options.cli.defaults.prefix]) {
-          this.__loadDefaultsJSONObject(envConfig[options.cli.defaults.prefix]);
-          this.__loadJSONObject(envConfig[options.cli.defaults.prefix]);
+        if (options.cli.defaults.enabled === true && envConfig[prefix]) {
+          this.__loadDefaultsJSONObject(envConfig[prefix]);
+          this.__loadJSONObject(envConfig[prefix]);
+        }
+      }
+
+      /**
+       * Loads the optional, hand-written __defaults block of the config file
+       */
+      __loadDefaultsFromFileContent(content: string): void {
+        const config: { __defaults?: any } = JSON.parse(content);
+        if (debugMode === true) {
+          debugLog('Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
+        }
+        if (typeof config.__defaults !== 'undefined') {
+          this.__loadDefaultsJSONObject(config.__defaults);
+          this.__loadJSONObject(config.__defaults);
         }
       }
 
       async __loadDefaults(pathOverride?: string): Promise<any> {
         const configPath = pathOverride || options.configPath;
         if (configPath) {
-
           try {
-            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(configPath, 'utf8'));
-            if (debugMode === true) {
-              console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
-            }
-            if (typeof config.__defaults !== 'undefined') {
-              this.__loadDefaultsJSONObject(config.__defaults);
-              this.__loadJSONObject(config.__defaults);
-            }
+            this.__loadDefaultsFromFileContent(await options.fsPromise.readFile(configPath, 'utf8'));
           } catch (e) {
-            if (debugMode === true || e instanceof SyntaxError) {
-              console.error(e);
-            }
+            handleReadError('cannot read defaults from file', e, false);
           }
         }
         this.__loadCLIENVDefaults();
@@ -110,24 +161,22 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       __loadDefaultsSync(pathOverride?: string): void {
         const configPath = pathOverride || options.configPath;
         if (configPath) {
-
           try {
-            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(configPath, 'utf8'));
-            if (debugMode === true) {
-              console.log('[Typeconfig] Loading defaults from file: ' + JSON.stringify(config.__defaults, null, '\t'));
-            }
-            if (typeof config.__defaults !== 'undefined') {
-              this.__loadDefaultsJSONObject(config.__defaults);
-              this.__loadJSONObject(config.__defaults);
-            }
+            this.__loadDefaultsFromFileContent(options.fs.readFileSync(configPath, 'utf8'));
           } catch (e) {
-            if (debugMode === true || e instanceof SyntaxError) {
-              console.log('[Typeconfig] cannot read defaults from file');
-              console.error(e);
-            }
+            handleReadError('cannot read defaults from file', e, false);
           }
         }
         this.__loadCLIENVDefaults();
+      }
+
+      /**
+       * Loads the values of the config file (without the __defaults block)
+       */
+      __loadConfigFromFileContent(content: string): void {
+        const config: { __defaults?: any } = JSON.parse(content);
+        delete config.__defaults;
+        this.__loadJSONObject(config);
       }
 
       __processOptions(config: { [p: string]: any }) {
@@ -136,77 +185,79 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
         if (options.cli.defaults.enabled === true && config[options.cli.defaults.prefix]) {
           delete config[options.cli.defaults.prefix];
         }
-        if (debugMode === true) {
-          console.log('[Typeconfig] Processing cli and ENV inputs: ' + JSON.stringify(config, null, '\t'));
-        }
+        debugLog('Processing cli and ENV inputs: ' + JSON.stringify(config, null, '\t'));
         return this.__loadJSONObject(config, true);
       }
 
-      loadSync(opt?: { pathOverride?: string, preventSaving?: boolean }): void {
+      /**
+       * Applies the cli and env inputs that should also be written back to the config file
+       */
+      __processRewritableInputs(): ParsedInputs {
+        const parsed: ParsedInputs = {shouldSave: false, cliParsed: false, envParsed: false};
+        if (options.rewriteCLIConfig === true) {
+          parsed.shouldSave = this.__processOptions(ConfigLoader.getCLIArgsAsObject()) || parsed.shouldSave;
+          parsed.cliParsed = true;
+        }
+        if (options.rewriteENVConfig === true) {
+          parsed.shouldSave = this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || parsed.shouldSave;
+          parsed.envParsed = true;
+        }
+        return parsed;
+      }
 
+      __shouldSaveAfterLoad(exists: boolean, parsed: ParsedInputs, opt?: LoadOptions): boolean {
+        if (exists === false) {
+          debugLog('config file does not exists yet. This can be normal');
+        }
+        return !opt?.preventSaving && ((options.saveIfNotExist === true && exists === false) || parsed.shouldSave);
+      }
+
+      /**
+       * Applies the remaining cli and env inputs (they override the file, but are not saved to it)
+       * and propagates the defaults
+       */
+      __finishLoading(parsed: ParsedInputs): void {
+        if (parsed.cliParsed === false) {
+          this.__processOptions(ConfigLoader.getCLIArgsAsObject());
+        }
+        if (parsed.envParsed === false) {
+          this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
+        }
+
+        this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
+      }
+
+      loadSync(opt?: LoadOptions): void {
         const configPath = opt?.pathOverride || options.configPath;
-
-        if (debugMode === true && configPath) {
-          console.log('[Typeconfig] Loading config. Path: ' + configPath);
+        if (configPath) {
+          debugLog('Loading config. Path: ' + configPath);
         }
         this.__loadDefaultsSync(configPath);
 
         if (configPath) {
-
           try {
-            const config: { __defaults?: any } = JSON.parse(options.fs.readFileSync(configPath, 'utf8'));
-            delete config.__defaults;
-            this.__loadJSONObject(config);
+            this.__loadConfigFromFileContent(options.fs.readFileSync(configPath, 'utf8'));
           } catch (e) {
-            if (debugMode === true || e instanceof SyntaxError) {
-              console.log('[Typeconfig] cannot read config from file');
-              console.error(e);
-            }
-            if (e instanceof TypeError) {
-              throw e;
-            }
+            handleReadError('cannot read config from file', e, true);
           }
         }
-        let shouldSave = false;
-        let cliParsed = false;
-        let envParsed = false;
-
-
-        if (options.rewriteCLIConfig === true) {
-          shouldSave = this.__processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
-          cliParsed = true;
-        }
-        if (options.rewriteENVConfig === true) {
-          shouldSave = this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
-          envParsed = true;
-        }
+        const parsed = this.__processRewritableInputs();
 
         let exists = false;
-
         try {
           options.fs.accessSync(configPath);
           exists = true;
-        } catch (e) {
-          if (debugMode === true) {
-            console.log('[Typeconfig] config file does not exists yet. This can be normal');
-            console.error(e);
-          }
+        } catch {
+          // the file does not exist yet
         }
-        if (!opt?.preventSaving && ((options.saveIfNotExist === true && exists === false) || shouldSave)) {
+        if (this.__shouldSaveAfterLoad(exists, parsed, opt)) {
           this.saveSync(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);
           }
         }
 
-        if (cliParsed === false) {
-          this.__processOptions(ConfigLoader.getCLIArgsAsObject());
-        }
-        if (envParsed === false) {
-          this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
-        }
-
-        this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
+        this.__finishLoading(parsed);
         // running postprocessing hook
         if (options.onLoadedSync) {
           options.onLoadedSync(this as any);
@@ -214,67 +265,37 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
       }
 
 
-      async load(opt?: { pathOverride?: string, preventSaving?: boolean }): Promise<any> {
+      async load(opt?: LoadOptions): Promise<any> {
         const configPath = opt?.pathOverride || options.configPath;
+        if (configPath) {
+          debugLog('Loading config. Path: ' + configPath);
+        }
         await this.__loadDefaults(configPath);
 
         if (configPath) {
-
           try {
-            const config: { __defaults?: any } = JSON.parse(await options.fsPromise.readFile(configPath, 'utf8'));
-            delete config.__defaults;
-            this.__loadJSONObject(config);
+            this.__loadConfigFromFileContent(await options.fsPromise.readFile(configPath, 'utf8'));
           } catch (e) {
-            if (debugMode === true || e instanceof SyntaxError) {
-              console.log('[Typeconfig] cannot read config from file');
-              console.error(e);
-            }
-
-            if (e instanceof TypeError) {
-              throw e;
-            }
+            handleReadError('cannot read config from file', e, true);
           }
         }
-        let shouldSave = false;
-        let cliParsed = false;
-        let envParsed = false;
-
-
-        if (options.rewriteCLIConfig === true) {
-          shouldSave = this.__processOptions(ConfigLoader.getCLIArgsAsObject()) || shouldSave;
-          cliParsed = true;
-        }
-        if (options.rewriteENVConfig === true) {
-          shouldSave = this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases())) || shouldSave;
-          envParsed = true;
-        }
+        const parsed = this.__processRewritableInputs();
 
         let exists = false;
-
         try {
           await options.fsPromise.access(configPath);
           exists = true;
-        } catch (e) {
-          if (debugMode === true) {
-            console.log('[Typeconfig] config file does not exists yet. This can be normal');
-            console.error(e);
-          }
+        } catch {
+          // the file does not exist yet
         }
-        if (!opt?.preventSaving && ((options.saveIfNotExist === true && exists === false) || shouldSave)) {
+        if (this.__shouldSaveAfterLoad(exists, parsed, opt)) {
           await this.save(configPath);
           if (options.exitOnConfig === true) {
             process.exit(0);
           }
         }
 
-        if (cliParsed === false) {
-          this.__processOptions(ConfigLoader.getCLIArgsAsObject());
-        }
-        if (envParsed === false) {
-          this.__processOptions(ConfigLoader.getENVArgsAsObject(this.__getENVAliases()));
-        }
-
-        this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
+        this.__finishLoading(parsed);
         // running postprocessing hook
         if (options.onLoaded) {
           await options.onLoaded(this as any);
@@ -304,12 +325,12 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
           const dir = options.path.dirname(configPath);
           try {
             await options.fsPromise.access(dir);
-          } catch (e) {
+          } catch {
             await options.fsPromise.mkdir(dir, {recursive: true});
           }
         }
         if (configPath) {
-          await ConfigLoader.saveJSONConfigFile(configPath, this);
+          await ConfigLoader.saveJSONConfigFile(configPath, this, options.fsPromise);
         }
       }
 
@@ -320,29 +341,10 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
         const pad: number = options.cli.prefix.length + 26;
         ret += '\nMeta cli options: \n';
         ret += '--help'.padEnd(pad) + ' prints this manual \n';
-        if (options.cli.enable.configPath === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.configPath).padEnd(pad) + ' sets the config file location \n';
-        }
-        if (options.cli.enable.attachState === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.attachState).padEnd(pad) + ' prints the value state (default, readonly, volatile, etc..) to the config file \n';
-        }
-        if (options.cli.enable.attachDescription === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.attachDescription).padEnd(pad) + ' prints description to the config file \n';
-        }
-        if (options.cli.enable.rewriteCLIConfig === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.rewriteCLIConfig).padEnd(pad) + ' updates the config file with the options from cli switches \n';
-        }
-        if (options.cli.enable.rewriteENVConfig === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.rewriteENVConfig).padEnd(pad) + ' updates the config file with the options from environmental variables \n';
-        }
-        if (options.cli.enable.enumsAsString === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.enumsAsString).padEnd(pad) + ' enums are stored as string in the config file (instead of numbers) \n';
-        }
-        if (options.cli.enable.saveIfNotExist === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.saveIfNotExist).padEnd(pad) + ' creates config file if not exist \n';
-        }
-        if (options.cli.enable.exitOnConfig === true) {
-          ret += ('--' + options.cli.prefix + '-' + cliMap.exitOnConfig).padEnd(pad) + ' creates config file and terminates \n';
+        for (const [key, description] of cliManual) {
+          if (options.cli.enable[key] === true) {
+            ret += ('--' + options.cli.prefix + '-' + cliMap[key]).padEnd(pad) + ' ' + description + ' \n';
+          }
         }
 
         ret += '\n<appname> can be configured through the configuration file, cli switches and environmental variables. \n';
@@ -352,7 +354,8 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
 
         if (options.cli.defaults.enabled) {
           ret += '\nDefault values can be also overwritten by prefixing the options with \'' + options.cli.defaults.prefix + '-\', \n';
-          ret += ' like \'<appname> --' + options.cli.defaults.prefix + '-MyConf=5\' and  \'SET ' + options.cli.defaults.prefix + '-MyConf=5\'\n';
+          ret += ' like \'<appname> --' + options.cli.defaults.prefix + '-MyConf=5\' and  \'SET ' +
+            options.cli.defaults.prefix + '-MyConf=5\'\n';
         }
         ret += '\nApp CLI options: \n' + this.___printOption('--', false);
         ret += '\nEnvironmental variables: \n' + this.___printOption('', true);
@@ -369,4 +372,3 @@ export function ConfigClass<C, TAGS = { [key: string]: any }>(options: ConfigCla
   };
 
 }
-

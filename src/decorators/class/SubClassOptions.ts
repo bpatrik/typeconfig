@@ -1,4 +1,4 @@
-import {ToJSONOptions} from './base/IConfigClassBase';
+import {ToJSONOptions} from './base/IConfigClassBase.js';
 
 export interface SubClassOptions<TAGS> extends ToJSONOptions<TAGS> {
   attachDescription?: boolean;

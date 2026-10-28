@@ -1,14 +1,15 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass} from '../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
-import {SubConfigClass} from '../../src/decorators/class/SubConfigClass';
-import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder';
-import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass';
-import {WebConfigClass} from '../../src/decorators/class/WebConfigClass';
-import {GenericConfigType} from '../../src/GenericConfigType';
+import {ConfigClass} from '../../src/decorators/class/ConfigClass.js';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty.js';
+import {SubConfigClass} from '../../src/decorators/class/SubConfigClass.js';
+import {ConfigClassBuilder} from '../../src/decorators/builders/ConfigClassBuilder.js';
+import {IConfigClassPrivate} from '../../src/decorators/class/IConfigClass.js';
+import {WebConfigClass} from '../../src/decorators/class/WebConfigClass.js';
+import {GenericConfigType} from '../../src/GenericConfigType.js';
 
-const chai: any = require('chai');
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
 
 describe('ConfigProperty', () => {
 
@@ -752,7 +753,7 @@ describe('ConfigProperty', () => {
     @SubConfigClass({softReadonly: true})
     class Sub {
       @ConfigProperty({
-        type: T1, typeBuilder: (value: { type: 't1' | 't2' }, config) => {
+        type: T1, typeBuilder: (value: { type: 't1' | 't2' }) => {
           return value.type === 't1' ? T1 : T2;
         }
       })
@@ -1000,7 +1001,7 @@ describe('ConfigProperty', () => {
 
       try {
         c.num = 1;
-      } catch (e) {
+      } catch {
       }
       chai.expect(c.toJSON()).to.deep.equal({num: 6});
 
@@ -1022,7 +1023,7 @@ describe('ConfigProperty', () => {
 
       try {
         c.num = 1;
-      } catch (e) {
+      } catch {
       }
       chai.expect(c.toJSON()).to.deep.equal({num: 10});
 
@@ -1055,7 +1056,7 @@ describe('ConfigProperty', () => {
 
       try {
         c.num = 1;
-      } catch (e) {
+      } catch {
       }
       chai.expect(c.toJSON()).to.deep.equal({num: 5});
       chai.expect(() => {
@@ -1076,7 +1077,7 @@ describe('ConfigProperty', () => {
       const c = ConfigClassBuilder.attachPrivateInterface(new C());
       try {
         c.num = 1;
-      } catch (e) {
+      } catch {
       }
       chai.expect(c.toJSON()).to.deep.equal({num: 10});
       chai.expect(() => {
@@ -1335,5 +1336,86 @@ describe('on new value', () => {
     c.sub.num = 8;
     chai.expect(c.toJSON()).to.deep.equal({sub: {num: 8}, a: 12});
 
+  });
+});
+
+describe('ConfigProperty type', () => {
+
+  it('should explain when the type cannot be inferred without reflect-metadata', () => {
+    const reflect = Reflect as any;
+    const getMetadata = reflect.getMetadata;
+    delete reflect.getMetadata;
+    try {
+      class C {
+        num: number = 5;
+      }
+
+      chai.expect(() => ConfigProperty()(C.prototype, 'num')).to.throw(Error, 'cannot infer the type of "C.num"');
+      // an explicit type does not need the metadata
+      chai.expect(() => ConfigProperty({type: 'integer'})(C.prototype, 'num')).to.not.throw();
+    } finally {
+      reflect.getMetadata = getMetadata;
+    }
+  });
+
+  it('should explain when there is no design:type metadata', () => {
+    class C {
+      num: number = 5;
+    }
+
+    // applied by hand, so TypeScript emits no metadata for it
+    chai.expect(() => ConfigProperty()(C.prototype, 'num')).to.throw(Error, 'there is no "design:type" metadata');
+  });
+
+  it('should reject invalid dates', () => {
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty()
+      date: Date = new Date(0);
+    }
+
+    const c = new C();
+    chai.expect(() => {
+      c.date = <any>'not a date';
+    }).to.throw(TypeError, 'should be a Date');
+    chai.expect(c.date.getTime()).to.equal(0);
+    c.date = <any>'2020-01-02T00:00:00.000Z';
+    chai.expect(c.date.toISOString()).to.equal('2020-01-02T00:00:00.000Z');
+  });
+
+  it('should build the type of the typeBuilder when a sub config is set from JSON', () => {
+
+    @SubConfigClass()
+    class T1 {
+      @ConfigProperty()
+      type: string = 't1';
+      @ConfigProperty()
+      num1: number = 1;
+    }
+
+    @SubConfigClass()
+    class T2 {
+      @ConfigProperty()
+      type: string = 't2';
+      @ConfigProperty()
+      num2: number = 2;
+    }
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty({
+        type: T1, typeBuilder: (value: { type: string }) => value.type === 't2' ? T2 : T1
+      })
+      t: T1 | T2 = new T1();
+    }
+
+    const c = ConfigClassBuilder.attachPrivateInterface(new C());
+    c.t = <any>{type: 't2', num2: 5};
+    chai.expect(c.t).to.be.instanceOf(T2);
+    chai.expect(c.toJSON()).to.deep.equal({t: {type: 't2', num2: 5}});
+    c.t = <any>{type: 't1', num1: 6};
+    chai.expect(c.t).to.be.instanceOf(T1);
+    chai.expect(c.toJSON()).to.deep.equal({t: {type: 't1', num1: 6}});
   });
 });

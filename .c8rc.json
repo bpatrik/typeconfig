@@ -1,0 +1,10 @@
+{
+  "exclude": [
+    "test/**",
+    "build/test/*/test/**"
+  ],
+  "reporter": [
+    "text",
+    "lcov"
+  ]
+}

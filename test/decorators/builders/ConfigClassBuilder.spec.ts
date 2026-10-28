@@ -1,13 +1,13 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass} from '../../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../../src/decorators/property/ConfigPropoerty';
-import {ConfigClassBuilder} from '../../../src/decorators/builders/ConfigClassBuilder';
+import {ConfigClass} from '../../../src/decorators/class/ConfigClass.js';
+import {ConfigProperty} from '../../../src/decorators/property/ConfigPropoerty.js';
+import {ConfigClassBuilder} from '../../../src/decorators/builders/ConfigClassBuilder.js';
 
-const chai: any = require('chai');
-const chaiAsPromised = require('chai-as-promised');
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
+import chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
-const should = chai.should();
 
 describe('ConfigClassBuilder', () => {
 
@@ -32,6 +32,23 @@ describe('ConfigClassBuilder', () => {
     chai.expect(c4.toJSON()).to.deep.equal({num: 5});
     chai.expect(c1.__defaults).to.deep.equal({num: 5});
     chai.expect(c3.__defaults).to.deep.equal({num: 5});
+  });
+
+  it('should pass the constructor arguments', () => {
+
+    @ConfigClass()
+    class C {
+      @ConfigProperty()
+      num: number = 5;
+
+      constructor(a: number = 1, b: number = 2) {
+        this.num = a + b;
+      }
+    }
+
+    chai.expect(ConfigClassBuilder.build(C, 3, 4).num).to.equal(7);
+    chai.expect(ConfigClassBuilder.buildPrivate(C, 4, 4).num).to.equal(8);
+    chai.expect(ConfigClassBuilder.build(C).num).to.equal(3);
   });
 
 

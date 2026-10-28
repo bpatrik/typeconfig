@@ -1,18 +1,19 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass} from '../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../src/decorators/property/ConfigPropoerty';
-import {ConfigClassBuilder} from '../src/decorators/builders/ConfigClassBuilder';
-import {SubConfigClass} from '../src/decorators/class/SubConfigClass';
-import {GenericConfigType} from '../src/GenericConfigType';
-import {WebConfigClassBuilder} from '../src/decorators/builders/WebConfigClassBuilder';
-import {WebConfigClass} from '../src/decorators/class/WebConfigClass';
-import {TestHelper} from './TestHelper';
+import {ConfigClass} from '../src/decorators/class/ConfigClass.js';
+import {ConfigProperty} from '../src/decorators/property/ConfigPropoerty.js';
+import {ConfigClassBuilder} from '../src/decorators/builders/ConfigClassBuilder.js';
+import {SubConfigClass} from '../src/decorators/class/SubConfigClass.js';
+import {GenericConfigType} from '../src/GenericConfigType.js';
+import {WebConfigClassBuilder} from '../src/decorators/builders/WebConfigClassBuilder.js';
+import {WebConfigClass} from '../src/decorators/class/WebConfigClass.js';
+import {TestHelper} from './TestHelper.js';
 import {promises as fsp} from 'fs';
-import {ConfigMap, IConfigMap} from '../src/ConfigMap';
+import {ConfigMap, type IConfigMap} from '../src/ConfigMap.js';
 
-const chai: any = require('chai');
-const chaiAsPromised = require('chai-as-promised');
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
+import chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
 
 describe('GenericConfigType', () => {
@@ -51,8 +52,7 @@ describe('GenericConfigType', () => {
 
     const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
     chai.expect(wc.a).to.deep.equal(3);
-    // tslint:disable-next-line:no-unused-expression
-    chai.expect((wc.inner as Sub)).to.be.undefined;
+       chai.expect((wc.inner as Sub)).to.equal(undefined);
 
     wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
     chai.expect(wc.a).to.deep.equal(3);
@@ -340,6 +340,27 @@ describe('GenericConfigType', () => {
   });
   describe('dynamically added properties', () => {
 
+    it('ConfigMap should list and remove its properties', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: ConfigMap})
+        map: IConfigMap<number> = new ConfigMap();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.map.addProperty('a', {type: 'integer'}, 1);
+      c.map.addProperty('b', {type: 'integer'}, 2);
+      chai.expect(c.map.keys()).to.deep.equal(['a', 'b']);
+      chai.expect(c.toJSON()).to.deep.equal({map: {a: 1, b: 2}});
+      c.map.removeProperty('a');
+      chai.expect(c.map.keys()).to.deep.equal(['b']);
+      chai.expect(c.toJSON()).to.deep.equal({map: {b: 2}});
+      chai.expect(() => {
+        c.map.b = <any>'not a number';
+      }).to.throw(TypeError);
+    });
+
     it('should update through json load', () => {
       @SubConfigClass()
       class Sub {
@@ -374,8 +395,7 @@ describe('GenericConfigType', () => {
 
       const wc = WebConfigClassBuilder.attachPrivateInterface(new WC());
       chai.expect(wc.a).to.deep.equal(3);
-      // tslint:disable-next-line:no-unused-expression
-      chai.expect((wc.inner as any)).to.be.not.undefined;
+           chai.expect((wc.inner as any)).to.not.equal(undefined);
 
       wc.load(JSON.parse(JSON.stringify(c.toJSON({attachState: true}))));
       chai.expect(wc.a).to.deep.equal(3);

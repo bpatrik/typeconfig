@@ -1,4 +1,4 @@
-import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase';
+import {IConfigClassBase, IConfigClassPrivateBase} from './base/IConfigClassBase.js';
 
 export interface IWebConfigClassPrivate<TAGS> extends IConfigClassPrivateBase<TAGS>, IWebConfigClass<TAGS> {
 }

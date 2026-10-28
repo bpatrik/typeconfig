@@ -1,6 +1,6 @@
-import {WebConfigLoader} from '../../WebConfigLoader';
-import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRootConfigClass';
-import {IWebConfigClassPrivate} from './IWebConfigClass';
+import {WebConfigLoader} from '../../WebConfigLoader.js';
+import {AbstractRootConfigClass, ConfigClassOptionsBase} from './base/AbstractRootConfigClass.js';
+import {IWebConfigClassPrivate} from './IWebConfigClass.js';
 
 
 export interface WebConfigClassOptions<TAGS extends { [key: string]: any }> extends ConfigClassOptionsBase<TAGS> {

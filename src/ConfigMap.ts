@@ -1,7 +1,7 @@
-import {SubConfigClass} from './decorators/class/SubConfigClass';
-import {PropertyOptions} from './decorators/property/IPropertyState';
-import {IConfigClassPrivateBase} from './decorators/class/base/IConfigClassBase';
-import {GenericConfigType} from './GenericConfigType';
+import {SubConfigClass} from './decorators/class/SubConfigClass.js';
+import {PropertyOptions} from './decorators/property/IPropertyState.js';
+import {IConfigClassPrivateBase} from './decorators/class/base/IConfigClassBase.js';
+import {GenericConfigType} from './GenericConfigType.js';
 
 export interface IConfigMap<V = any> {
   [key: string]: V | Function;

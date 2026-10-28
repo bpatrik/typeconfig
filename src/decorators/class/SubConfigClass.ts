@@ -1,5 +1,5 @@
-import {ConfigClassBase} from './base/ConfigClassBase';
-import {SubClassOptions} from './SubClassOptions';
+import {ConfigClassBase} from './base/ConfigClassBase.js';
+import {SubClassOptions} from './SubClassOptions.js';
 
 
 export function SubConfigClass<TAGS>(options: SubClassOptions<TAGS> = {}): any {

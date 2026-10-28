@@ -1,5 +1,5 @@
-import {IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState';
-import {SubClassOptions} from '../SubClassOptions';
+import {IPropertyMetadata, PropertyOptions, propertyTypes} from '../../property/IPropertyState.js';
+import {SubClassOptions} from '../SubClassOptions.js';
 
 
 export interface ToJSONOptions<TAGS extends { [key: string]: any }> {

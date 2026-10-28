@@ -1,6 +1,6 @@
-import {ConstraintError} from '../../exceptions/ConstraintError';
-import {ConfigClassBase} from './ConfigClassBase';
-import {SubClassOptions} from '../SubClassOptions';
+import {ConstraintError} from '../../exceptions/ConstraintError.js';
+import {ConfigClassBase} from './ConfigClassBase.js';
+import {SubClassOptions} from '../SubClassOptions.js';
 
 
 export interface ConfigClassOptionsBase<TAGS> extends SubClassOptions<TAGS> {

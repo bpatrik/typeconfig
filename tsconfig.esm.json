@@ -1,0 +1,9 @@
+{
+  // ES module build of the published package (dist/esm), used through the "import" condition and by bundlers
+  "extends": "./tsconfig.cjs.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "dist/esm"
+  }
+}

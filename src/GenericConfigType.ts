@@ -1,7 +1,4 @@
-import {SubConfigClass} from './decorators/class/SubConfigClass';
-import {PropertyOptions} from './decorators/property/IPropertyState';
-import {ConfigProperty} from './decorators/property/ConfigPropoerty';
-import {IConfigClassPrivateBase} from './decorators/class/base/IConfigClassBase';
+import {SubConfigClass} from './decorators/class/SubConfigClass.js';
 
 
 @SubConfigClass()
@@ -9,9 +6,9 @@ export class GenericConfigType {
 
   constructor() {
     // this is a ConfigClassBase hack to prevent circular dependencies.
-    // @ts-ignore
+    // @ts-expect-error the field is declared on the ConfigClassBase mixin
     this.__unknownObjectType = GenericConfigType;
-    // @ts-ignore
+    // @ts-expect-error the field is declared on the ConfigClassBase mixin
     this.__isGenericConfigType = true;
   }
 

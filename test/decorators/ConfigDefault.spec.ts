@@ -1,11 +1,11 @@
-/* tslint:disable:no-inferrable-types */
 import 'reflect-metadata';
-import {ConfigClass} from '../../src/decorators/class/ConfigClass';
-import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty';
-import {ConfigDefaults} from '../../src/decorators/property/ConfigDefaults';
+import {ConfigClass} from '../../src/decorators/class/ConfigClass.js';
+import {ConfigProperty} from '../../src/decorators/property/ConfigPropoerty.js';
+import {ConfigDefaults} from '../../src/decorators/property/ConfigDefaults.js';
 
-const chai: any = require('chai');
-const should = chai.should();
+import * as chaiModule from 'chai';
+
+const chai: any = chaiModule;
 
 describe('ConfigDefault', () => {
 
