@@ -1,6 +1,7 @@
 # typeconfig
 [![npm version](https://badge.fury.io/js/typeconfig.svg)](https://badge.fury.io/js/typeconfig)
 [![test](https://github.com/bpatrik/typeconfig/actions/workflows/ci.yml/badge.svg)](https://github.com/bpatrik/typeconfig/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/bpatrik/typeconfig/badge.svg?branch=master)](https://coveralls.io/github/bpatrik/typeconfig?branch=master)
 
 Configuration file for Typescript.
 Useful for separating frontend (public) and backend (private) config

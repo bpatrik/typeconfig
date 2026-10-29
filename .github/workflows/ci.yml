@@ -34,6 +34,13 @@ jobs:
         run: npm test
         env:
           CI: true
+      # c8 writes coverage/lcov.info (CommonJS run, mapped to the .ts sources); upload it once, not per Node version
+      - name: upload coverage to Coveralls
+        if: matrix.node-version == '24.x'
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/lcov.info
+          fail-on-error: false
       - name: test the package (exports map, browser bundle, types)
         run: npm run test:package
 

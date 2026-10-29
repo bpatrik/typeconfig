@@ -40,7 +40,9 @@ npm run test:ts       # runs the .ts specs directly through ts-node (no build), 
 - Never write a `node.js` (or `node.cmd`, `node.bat`, ...) into the repo root: cmd.exe, which runs the npm scripts on
   Windows, would start it instead of node.exe for every bare `node` call (tsc, mocha, rimraf), silently skipping them.
 - CI: `.github/workflows/ci.yml` runs lint, `npm test` and `npm run test:package` on the Node LTS lines
-  22/24/26 (22 is the minimum supported version, also in `engines`; the published code targets ES2022), then publishes new versions (see Gotchas).
+  22/24/26 (22 is the minimum supported version, also in `engines`; the published code targets ES2022), uploads
+  `coverage/lcov.info` to [Coveralls](https://coveralls.io/github/bpatrik/typeconfig) from the Node 24 job, then publishes
+  new versions (see Gotchas).
 
 ## Packaging
 
