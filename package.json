@@ -1,6 +1,6 @@
 {
   "name": "typeconfig",
-  "version": "2.3.4",
+  "version": "2.4.0",
   "description": "Config loader for Typescript",
   "main": "./dist/cjs/common.js",
   "module": "./dist/esm/common.js",
