@@ -19,9 +19,9 @@ jobs:
         node-version: [ 22.x, 24.x, 26.x ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -51,13 +51,14 @@ jobs:
       id-token: write # npm trusted publishing (OIDC), also signs the provenance
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           # trusted publishing needs npm >= 11.5.1, which ships with Node 24
           node-version: 24.x
           registry-url: https://registry.npmjs.org
-          cache: npm
+          # no dependency cache here: a poisoned cache must not end up in a published package
+          package-manager-cache: false
 
       - name: check if the version is new
         id: version
