@@ -1,0 +1,91 @@
+name: test
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*.*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # the supported Node LTS lines; drop one when it reaches end of life
+        node-version: [ 22.x, 24.x, 26.x ]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: install
+        run: npm ci
+      - name: lint
+        run: npm run lint
+      - name: test (CommonJS and ES modules)
+        run: npm test
+        env:
+          CI: true
+      - name: test the package (exports map, browser bundle, types)
+        run: npm run test:package
+
+  # Publishes to npm when master has a package.json version that is not on npm yet, then tags the commit
+  # with that version. Releasing = bumping "version" in package.json and pushing to master.
+  # Uses npm trusted publishing (no token): on npmjs.com, package settings -> Trusted publishing ->
+  # GitHub Actions, repository bpatrik/typeconfig, workflow ci.yml.
+  publish:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency: publish
+    permissions:
+      contents: write # push the version tag
+      id-token: write # npm trusted publishing (OIDC), also signs the provenance
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # trusted publishing needs npm >= 11.5.1, which ships with Node 24
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: check if the version is new
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ -n "$(npm view "typeconfig@$VERSION" version 2>/dev/null)" ]; then
+            echo "typeconfig@$VERSION is already on npm, nothing to publish"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: install
+        if: steps.version.outputs.publish == 'true'
+        run: npm ci
+      # prepublishOnly runs lint, test and test:package, which also builds dist/
+      - name: publish
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # pre-releases (e.g. 2.4.0-beta.1) must not become "latest"
+          case "$VERSION" in
+            *-*) npm publish --tag next ;;
+            *) npm publish ;;
+          esac
+      - name: tag the release
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          git tag "${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"

@@ -39,8 +39,8 @@ npm run test:ts       # runs the .ts specs directly through ts-node (no build), 
 - `dist/`, `build/` and `coverage/` are git-ignored; never commit them.
 - Never write a `node.js` (or `node.cmd`, `node.bat`, ...) into the repo root: cmd.exe, which runs the npm scripts on
   Windows, would start it instead of node.exe for every bare `node` call (tsc, mocha, rimraf), silently skipping them.
-- CI: `.github/workflows/build.yml` runs lint, `npm test` and `npm run test:package` on Node 20/22/24
-  (the dev tooling needs Node >= 20.19; the published code targets ES2022).
+- CI: `.github/workflows/ci.yml` runs lint, `npm test` and `npm run test:package` on the Node LTS lines
+  22/24/26 (22 is the minimum supported version, also in `engines`; the published code targets ES2022), then publishes new versions (see Gotchas).
 
 ## Packaging
 
@@ -197,4 +197,6 @@ uncommitted for review like any other).
   must be overridden in each root decorator so `clone()` builds the decorated type.
 - `ConfigClass` reads `process.argv` (incl. `--help`, which calls `process.exit`) at decoration and
   construction time — tests that touch CLI handling must restore `process.argv` / `process.env`.
-- Bump `version` in `package.json` for releases; don't publish from an agent.
+- Releasing = bumping `version` in `package.json` and pushing to master: the `publish` job in `.github/workflows/ci.yml`
+  publishes it to npm (npm trusted publishing, no token) once the tests pass, and pushes a git tag with the plain version
+  (e.g. `2.4.0`). Pre-release versions (`2.4.0-beta.1`) go to the `next` dist-tag. Never run `npm publish` from an agent.
