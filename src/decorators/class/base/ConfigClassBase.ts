@@ -804,7 +804,7 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
               remove(key);
               continue;
             }
-            if (typeof obj[key] === 'object') {
+            if (typeof obj[key] === 'object' && obj[key] !== null) {
               removeSame(obj[key], ref[key]);
               if (Object.keys(obj[key]).length === 0) {
                 remove(key);

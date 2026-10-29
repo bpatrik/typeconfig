@@ -30,6 +30,8 @@ describe('Utils', () => {
     chai.expect(Utils.isEnum(5)).to.equal(false);
     chai.expect(Utils.isEnum({})).to.equal(false);
     chai.expect(Utils.isEnum({a: 'b'})).to.equal(false);
+    chai.expect(Utils.isEnum({a: 1})).to.equal(false);
+    chai.expect(Utils.isEnum({a: true})).to.equal(false);
     chai.expect(Utils.isEnum(Number)).to.equal(false);
   });
 });

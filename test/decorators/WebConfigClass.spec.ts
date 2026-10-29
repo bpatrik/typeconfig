@@ -65,6 +65,26 @@ describe('WebConfigClass', () => {
       }).to.throw(Error, 'readonly');
     });
 
+    it('should load url params', async () => {
+
+      @WebConfigClass({loadQueryOptions: true})
+      class C {
+        @ConfigProperty()
+        num: number = 10;
+      }
+
+      const g = globalThis as { window?: unknown };
+      const originalWindow = g.window;
+      g.window = {location: {search: '?num=12'}};
+      try {
+        const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+        c.load({num: 7});
+        chai.expect(c.toJSON()).to.deep.equal({num: 12});
+      } finally {
+        g.window = originalWindow;
+      }
+    });
+
     it('should not load irrelevat', async () => {
 
       @WebConfigClass()

@@ -2174,4 +2174,163 @@ describe('ConfigClass', () => {
     });
   });
 
+  describe('process', () => {
+
+    const originalExit = process.exit;
+    const originalLog = console.log;
+    const originalError = console.error;
+    let exitCodes: number[];
+    let logs: unknown[];
+
+    beforeEach(async () => {
+      await TestHelper.cleanTempFolder();
+      exitCodes = [];
+      logs = [];
+      process.exit = <any>((code: number) => {
+        exitCodes.push(code);
+      });
+      console.log = (...args: unknown[]) => {
+        logs.push(...args);
+      };
+      console.error = console.log;
+    });
+    afterEach(async () => {
+      process.exit = originalExit;
+      console.log = originalLog;
+      console.error = originalError;
+      process.argv = process.argv.filter(s => s !== '--help');
+      await TestHelper.removeTempFolder();
+    });
+
+    it('should print the manual and exit on --help', () => {
+      @ConfigClass()
+      class C {
+        @ConfigProperty({description: 'a number'})
+        num: number = 5;
+      }
+
+      process.argv.push('--help');
+      new C();
+      chai.expect(exitCodes).to.deep.equal([0]);
+      chai.expect(logs[0]).to.contain('a number (default: 5)');
+    });
+
+    it('should exit after creating the config file', async () => {
+      const filePath = TestHelper.getFilePath('exit.json');
+
+      @ConfigClass({configPath: filePath, exitOnConfig: true})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      await ConfigClassBuilder.attachInterface(new C()).load();
+      chai.expect(exitCodes).to.deep.equal([0]);
+      chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5});
+
+      await fsp.rm(filePath);
+      ConfigClassBuilder.attachInterface(new C()).loadSync();
+      chai.expect(exitCodes).to.deep.equal([0, 0]);
+      chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5});
+    });
+
+    it('should report a broken config file', async () => {
+      const filePath = TestHelper.getFilePath('broken.json');
+      await fsp.writeFile(filePath, '{ not json');
+
+      @ConfigClass({configPath: filePath})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      const c = ConfigClassBuilder.attachInterface(new C());
+      await c.load();
+      chai.expect(logs).to.contain('[Typeconfig] cannot read config from file');
+      c.loadSync();
+      chai.expect(logs.filter(l => l instanceof SyntaxError)).to.have.length(4);
+      chai.expect(c.num).to.equal(5);
+      chai.expect(await fsp.readFile(filePath, 'utf8')).to.equal('{ not json');
+    });
+  });
+
+  describe('loading', () => {
+
+    beforeEach(async () => {
+      await TestHelper.cleanTempFolder();
+    });
+    afterEach(async () => {
+      await TestHelper.removeTempFolder();
+    });
+
+    it('should run the loaded hooks', async () => {
+      const calls: string[] = [];
+
+      @ConfigClass({onLoadedSync: () => calls.push('sync')})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      @ConfigClass({
+        onLoaded: async () => {
+          calls.push('async');
+        },
+        onLoadedSync: () => calls.push('sync only')
+      })
+      class C2 {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      // without async hook, load falls back to the sync one
+      await ConfigClassBuilder.attachInterface(new C()).load();
+      ConfigClassBuilder.attachInterface(new C()).loadSync();
+      await ConfigClassBuilder.attachInterface(new C2()).load();
+      chai.expect(calls).to.deep.equal(['sync', 'sync', 'async']);
+    });
+
+    it('should load the __defaults block of the config file', async () => {
+      const filePath = TestHelper.getFilePath('defaults.json');
+      await fsp.writeFile(filePath, JSON.stringify({num: 7, __defaults: {num: 3, other: 4}}));
+
+      @ConfigClass({configPath: filePath})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        other: number = 1;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      await c.load();
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal({num: 7, other: 4, __state: {num: {default: 3}, other: {default: 4}}});
+
+      const c2 = ConfigClassBuilder.attachPrivateInterface(new C());
+      c2.loadSync();
+      chai.expect(c2.toJSON({attachState: true})).to.deep.equal(c.toJSON({attachState: true}));
+    });
+
+    it('should create the folder of the config file', async () => {
+      const filePath = TestHelper.getFilePath('async/sub/config.json');
+      const syncFilePath = TestHelper.getFilePath('sync/sub/config.json');
+
+      @ConfigClass({configPath: filePath, crateConfigPathIfNotExists: true})
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+      }
+
+      const c = ConfigClassBuilder.attachInterface(new C());
+      await c.save();
+      // the folder already exists now
+      await c.save();
+      c.saveSync(syncFilePath);
+      c.saveSync(syncFilePath);
+      chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5});
+      chai.expect(JSON.parse(await fsp.readFile(syncFilePath, 'utf8'))).to.deep.equal({num: 5});
+    });
+  });
+
 });

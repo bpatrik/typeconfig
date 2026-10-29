@@ -80,6 +80,15 @@ describe('ConfigLoader', () => {
       await ConfigLoader.loadBackendConfig({a: 1}, filePath);
       chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({a: 1});
     });
+
+    it('Should rewrite the config file with the env variables', async () => {
+      const filePath = TestHelper.getFilePath('rewrite.json');
+      const testObj = {sub: {data: {a: '0'}}};
+      await ConfigLoader.loadBackendConfig(testObj, filePath);
+      process.env['sub-data-a'] = '2';
+      await ConfigLoader.loadBackendConfig(testObj, filePath, [], true);
+      chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({sub: {data: {a: '2'}}});
+    });
   });
 
 });
