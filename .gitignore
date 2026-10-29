@@ -5,7 +5,7 @@ node_modules/
 dist/
 build/
 coverage/
-# compatibility shims written by the build (scripts/write-root-shims.mjs) and stale output of the old in-place build
+# stale output of the old in-place build (a root node.js would shadow node.exe for cmd.exe on Windows)
 /*.js
 /*.js.map
 /*.d.ts

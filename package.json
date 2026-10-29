@@ -71,18 +71,15 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "common.js",
-    "common.d.ts",
-    "node.js",
-    "node.d.ts",
-    "web.js",
-    "web.d.ts",
+    "common/",
+    "node/",
+    "web/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "clean": "rimraf dist common.js common.d.ts node.js node.d.ts web.js web.d.ts",
-    "build": "npm run clean && npm run build:cjs && npm run build:esm && node scripts/write-root-shims.mjs",
+    "clean": "rimraf dist",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/mark-module-type.mjs dist/cjs commonjs",
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/mark-module-type.mjs dist/esm module",
     "typecheck": "tsc",

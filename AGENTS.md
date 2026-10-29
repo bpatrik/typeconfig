@@ -22,7 +22,7 @@ throws an error naming the class and property. Consumers also need `experimental
 npm ci                # install
 npm run lint          # ESLint (eslint.config.mjs)
 npm run typecheck     # tsc --noEmit over sources and specs
-npm run build         # dist/cjs + dist/esm (+ the root compatibility shims)
+npm run build         # dist/cjs + dist/esm
 npm test              # compiles sources+specs to build/test/cjs and build/test/esm, runs mocha on both (c8 coverage on cjs)
 npm run test:package  # builds dist/, runs test/package/*.spec.mjs and attw (are-the-types-wrong)
 npm run test:ts       # runs the .ts specs directly through ts-node (no build), also: npx mocha test/Loader.spec.ts
@@ -36,7 +36,9 @@ npm run test:ts       # runs the .ts specs directly through ts-node (no build), 
 - Relative imports in `.ts` files must end in `.js` (needed by the ES module build).
 - Re-exported types need `export type`, types used in decorated signatures need `import type`
   (`isolatedModules` is on, as it will be for the PiGallery2 frontend).
-- `dist/`, `build/`, `coverage/` and the generated root `common|node|web.js/.d.ts` shims are git-ignored; never commit them.
+- `dist/`, `build/` and `coverage/` are git-ignored; never commit them.
+- Never write a `node.js` (or `node.cmd`, `node.bat`, ...) into the repo root: cmd.exe, which runs the npm scripts on
+  Windows, would start it instead of node.exe for every bare `node` call (tsc, mocha, rimraf), silently skipping them.
 - CI: `.github/workflows/build.yml` runs lint, `npm test` and `npm run test:package` on Node 20/22/24
   (the dev tooling needs Node >= 20.19; the published code targets ES2022).
 
@@ -49,7 +51,7 @@ npm run test:ts       # runs the .ts specs directly through ts-node (no build), 
   per-format types, plus `./src/*` for the legacy deep imports (deprecated, kept for compatibility).
   `typesVersions` makes the same paths resolve for `moduleResolution: node` (node10), which PiGallery2's
   backend uses.
-- `scripts/write-root-shims.mjs` writes root `common/node/web.js` + `.d.ts` that re-export `dist/cjs`, for
+- The committed `common/`, `node/` and `web/` folders hold `index.js` + `index.d.ts` shims that re-export `dist/cjs`, for
   consumers importing by file path (PiGallery2's `ConfigDiagnostics.ts` imports
   `../../../../node_modules/typeconfig/node`).
 - `"sideEffects": false`: the modules only declare classes/functions; keep it that way.
@@ -135,7 +137,7 @@ Local checkouts live next to this repo (`../PiGallery2`, `../xlf-google-translat
   `src/decorators/builders/{ConfigClassBuilder,WebConfigClassBuilder}`,
   `src/decorators/class/{IConfigClass,IWebConfigClass,SubConfigClass,WebConfigClass}`,
   `src/decorators/property/ConfigPropoerty` (served by the `./src/*` export), and one file path import
-  (`../../../../node_modules/typeconfig/node`, served by the root shim). Everything it deep-imports is
+  (`../../../../node_modules/typeconfig/node`, served by the `node/` shim folder). Everything it deep-imports is
   also exported from the entry points, so it can move off the deep imports (task T2 of
   [PiGallery2 #1219](https://github.com/bpatrik/pigallery2/issues/1219)).
 - Its backend compiles with `moduleResolution: node` (node10), the Angular frontend with `bundler`
@@ -155,7 +157,7 @@ compare `__printMan()` and `JSON.stringify(config)` of `PrivateConfigClass`, the
 Imports only `typeconfig/node` and `typeconfig/common`.
 
 Implications for changes here:
-- Removing the `./src/*` export, the `typesVersions` or the root shims is a **breaking change** (major version).
+- Removing the `./src/*` export, the `typesVersions` or the `common|node|web/` shim folders is a **breaking change** (major version).
 - Renaming/moving files under `src/` (including the misspelled `ConfigPropoerty.ts`) or the names of
   `__state`/`__options`/`__propPath` and `IPropertyMetadata` fields is a **breaking change**.
 - Keep the shape of `toJSON` output (descriptions as `//[prop]`, `__state` with `attachState`), the
