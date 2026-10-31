@@ -239,5 +239,38 @@ describe('WebConfigClass', () => {
     });
   });
 
+  describe('resetToDefaults', () => {
+
+    it('should reset a web config', () => {
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        a: number = 1;
+      }
+
+      @WebConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+      }
+
+      const c = WebConfigClassBuilder.attachPrivateInterface(new C());
+      const freshJSON = c.toJSON({attachState: true});
+      c.load({num: 10, sub: {a: 2}, __state: {num: {readonly: true}}});
+      chai.expect(c.toJSON()).to.deep.equal({num: 10, sub: {a: 2}});
+      chai.expect(() => {
+        c.num = 11;
+      }).to.throw(Error, 'readonly');
+      c.resetToDefaults();
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(freshJSON);
+      c.num = 11;
+      chai.expect(c.num).to.equal(11);
+    });
+
+  });
 
 });

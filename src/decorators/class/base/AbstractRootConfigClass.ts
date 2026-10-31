@@ -54,5 +54,15 @@ export function AbstractRootConfigClass<TAGS>(constructorFunction: new (...args:
       this.__rootConfig.__inheritDefaultsFromParent(this.__rootConfig.__defaults);
 
     }
+
+    /**
+     * Resets the config to the state of a newly created instance:
+     * values loaded from file, cli, env or set by code are dropped, so are the default overrides and readonly flags.
+     * Sub config objects are kept, dynamically added properties (GenericConfigType, ConfigMap) are removed.
+     */
+    resetToDefaults(): void {
+      this.__resetFrom(this.__getNewInstance());
+      this.__setParentConfig('', '', this, null);
+    }
   };
 }

@@ -171,6 +171,7 @@ Implications for changes here:
 - Work and commit on `master` by default; only use another branch if the maintainer asks for one.
 - Never commit automatically. Leave changes uncommitted so the maintainer can review them in WebStorm,
   and commit only when explicitly asked.
+- Always `git add` new files you create (only stage them, don't commit), so they show up in WebStorm's changelist.
 
 ## Keeping this file current
 
@@ -186,6 +187,9 @@ uncommitted for review like any other).
 - `noImplicitAny` is on; `<any>` casts are common in decorator plumbing — follow the surrounding code.
 - Tests: one `describe` per class, decorated classes declared inline inside each `it`, assertions via
   `chai.expect(...)`. Add a spec next to the matching area when changing behaviour.
+- Specs are organized per file, not per feature: put new tests into the existing spec file that best matches the
+  functionality, or the one of the class where the function becomes public (e.g. a root-config method goes into
+  `ConfigClass.spec.ts` / `WebConfigClass.spec.ts`, as a nested `describe`). Don't create a new spec file for one function.
 
 ## Gotchas
 

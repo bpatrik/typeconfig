@@ -9,6 +9,8 @@ import {ConfigClassOptions, IConfigClassPrivate} from '../../src/decorators/clas
 import {WebConfigClass} from '../../src/decorators/class/WebConfigClass.js';
 import {WebConfigClassBuilder} from '../../web.js';
 import {GenericConfigType} from '../../src/GenericConfigType.js';
+import {ConfigMap, type IConfigMap} from '../../src/ConfigMap.js';
+import {ConstraintError} from '../../src/decorators/exceptions/ConstraintError.js';
 import {IConfigClassPrivateBase} from '../../src/decorators/class/base/IConfigClassBase.js';
 
 import * as chaiModule from 'chai';
@@ -2331,6 +2333,392 @@ describe('ConfigClass', () => {
       chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8'))).to.deep.equal({num: 5});
       chai.expect(JSON.parse(await fsp.readFile(syncFilePath, 'utf8'))).to.deep.equal({num: 5});
     });
+  });
+
+  describe('resetToDefaults', () => {
+
+    it('should reset values set by code', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        str: string = 'apple';
+
+        @ConfigProperty()
+        list: number[] = [1, 2];
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const freshJSON = c.toJSON({attachState: true});
+      c.num = 10;
+      c.str = 'pear';
+      c.list.push(3);
+      c.list = [7];
+      chai.expect(c.toJSON()).to.deep.equal({num: 10, str: 'pear', list: [7]});
+
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({num: 5, str: 'apple', list: [1, 2]});
+      chai.expect(c.toJSON({attachState: true})).to.deep.equal(freshJSON);
+      chai.expect(c.__isDefault()).to.equal(true);
+    });
+
+    it('should not share the default arrays and objects with later changes', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        list: number[] = [1, 2];
+
+        @ConfigProperty()
+        obj: object = {a: 1};
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.resetToDefaults();
+      c.list.push(3);
+      (c.obj as { a: number }).a = 2;
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({list: [1, 2], obj: {a: 1}});
+    });
+
+    it('should keep the values set in the constructor', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty()
+        fromCtor: number = 1;
+
+        constructor() {
+          this.fromCtor = this.num * 2;
+        }
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.num = 1;
+      c.fromCtor = 3;
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({num: 5, fromCtor: 10});
+    });
+
+    it('should reset sub configs in place', () => {
+
+      @SubConfigClass()
+      class Inner {
+        @ConfigProperty({type: 'unsignedInt'})
+        b: number = 3;
+      }
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        a: number = 1;
+
+        @ConfigProperty({type: Inner})
+        inner: Inner = new Inner();
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const sub = c.sub;
+      const inner = c.sub.inner;
+      c.sub.a = 2;
+      c.sub.inner.b = 4;
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {a: 1, inner: {b: 3}}});
+      chai.expect(c.sub).to.equal(sub);
+      chai.expect(c.sub.inner).to.equal(inner);
+
+      // the kept sub configs still belong to the root and validate
+      const privateInner = c.sub.inner as unknown as IConfigClassPrivateBase<unknown>;
+      chai.expect(privateInner.__rootConfig).to.equal(c);
+      chai.expect(privateInner.__propPath).to.equal('sub.inner');
+      chai.expect(() => {
+        c.sub.inner.b = -1;
+      }).to.throw(Error);
+      sub.inner.b = 6;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {a: 1, inner: {b: 6}}});
+    });
+
+    it('should reset a replaced sub config', () => {
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty()
+        a: number = 1;
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+
+        @ConfigProperty({type: Sub})
+        empty: Sub;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.sub = {a: 2} as Sub;
+      c.empty = {a: 3} as Sub;
+      chai.expect(c.toJSON()).to.deep.equal({sub: {a: 2}, empty: {a: 3}});
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({sub: {a: 1}});
+      chai.expect(c.empty).to.equal(undefined);
+      chai.expect((c.sub as unknown as IConfigClassPrivateBase<unknown>).__rootConfig).to.equal(c);
+    });
+
+    it('should reset arrays of sub configs', () => {
+
+      @SubConfigClass()
+      class Item {
+        @ConfigProperty()
+        name: string = 'default';
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({arrayType: Item})
+        items: Item[] = [new Item()];
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.items[0].name = 'changed';
+      c.items = [{name: 'a'}, {name: 'b'}] as Item[];
+      chai.expect(c.toJSON()).to.deep.equal({items: [{name: 'a'}, {name: 'b'}]});
+      c.resetToDefaults();
+      chai.expect(c.toJSON()).to.deep.equal({items: [{name: 'default'}]});
+      chai.expect(c.__isDefault()).to.equal(true);
+    });
+
+    it('should reset enums', () => {
+
+      enum Fruit {
+        apple, pear
+      }
+
+      @ConfigClass({enumsAsString: true})
+      class C {
+        @ConfigProperty({type: Fruit})
+        fruit: Fruit = Fruit.pear;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.fruit = Fruit.apple;
+      c.resetToDefaults();
+      chai.expect(c.fruit).to.equal(Fruit.pear);
+      chai.expect(c.toJSON()).to.deep.equal({fruit: 'pear'});
+    });
+
+    it('should clear readonly flags', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        num: number = 5;
+
+        @ConfigProperty({readonly: true})
+        ro: number = 1;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.__state['num'].readonly = true;
+      chai.expect(() => {
+        c.num = 6;
+      }).to.throw(Error, 'readonly');
+      c.resetToDefaults();
+      c.num = 6;
+      chai.expect(c.num).to.equal(6);
+      // readonly from the class definition stays
+      chai.expect(() => {
+        c.ro = 2;
+      }).to.throw(Error, 'readonly');
+    });
+
+    it('should remove dynamically added properties', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: ConfigMap})
+        map: IConfigMap<number> = new ConfigMap();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      const map = c.map;
+      c.map.addProperty('a', {type: 'integer'}, 1);
+      chai.expect(c.toJSON()).to.deep.equal({map: {a: 1}});
+      c.resetToDefaults();
+      chai.expect(c.map).to.equal(map);
+      chai.expect(c.map.keys()).to.deep.equal([]);
+      chai.expect(c.map['a']).to.equal(undefined);
+      chai.expect(c.toJSON()).to.deep.equal({map: {}});
+      c.map.addProperty('a', {type: 'integer'}, 2);
+      chai.expect(c.toJSON()).to.deep.equal({map: {a: 2}});
+    });
+
+    it('should keep validating constraints after reset', () => {
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty()
+        min: number = 1;
+
+        @ConfigProperty({
+          constraint: {
+            assert: (value: number, config: C) => value >= config.min,
+            assertReason: 'max should not be less than min'
+          }
+        })
+        max: number = 10;
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.min = 5;
+      c.resetToDefaults();
+      chai.expect(() => {
+        c.max = 0;
+      }).to.throw(ConstraintError, 'max should not be less than min');
+    });
+
+    it('should run the onNewValue hooks with the reset config', () => {
+
+      let lastRoot: unknown = null;
+
+      @SubConfigClass()
+      class Sub {
+        @ConfigProperty({onNewValue: (_value, config) => lastRoot = config})
+        a: number = 1;
+      }
+
+      @ConfigClass()
+      class C {
+        @ConfigProperty({type: Sub})
+        sub: Sub = new Sub();
+      }
+
+      const c = ConfigClassBuilder.attachPrivateInterface(new C());
+      c.resetToDefaults();
+      c.sub.a = 2;
+      chai.expect(lastRoot).to.equal(c);
+    });
+
+    describe('loaded config', () => {
+
+      const filePath = TestHelper.getFilePath('resetConf.json');
+      const cleanUp = () => {
+        process.argv = process.argv.filter(s => !s.startsWith('--num') && !s.startsWith('--default-num2'));
+        delete process.env['str'];
+        delete process.env['default-num3'];
+      };
+
+      beforeEach(async () => {
+        cleanUp();
+        await TestHelper.cleanTempFolder();
+      });
+      afterEach(async () => {
+        cleanUp();
+        await TestHelper.removeTempFolder();
+      });
+
+      const writeConfig = async () => {
+        await fsp.writeFile(filePath, JSON.stringify({
+          __defaults: {num4: 40, sub: {a: 30}},
+          num: 2, num2: 3, num3: 4, str: 'file', sub: {a: 31}
+        }));
+      };
+
+      it('should drop everything loaded from file, cli and env', async () => {
+
+        @SubConfigClass()
+        class Sub {
+          @ConfigProperty()
+          a: number = 1;
+        }
+
+        @ConfigClass({configPath: filePath, saveIfNotExist: false, cli: {defaults: {enabled: true}}})
+        class C {
+          @ConfigProperty()
+          num: number = 5;
+
+          @ConfigProperty()
+          num2: number = 5;
+
+          @ConfigProperty()
+          num3: number = 5;
+
+          @ConfigProperty()
+          num4: number = 5;
+
+          @ConfigProperty()
+          str: string = 'class';
+
+          @ConfigProperty({type: Sub})
+          sub: Sub = new Sub();
+        }
+
+        await writeConfig();
+        process.argv.push('--num=100', '--default-num2=200');
+        process.env['str'] = 'env';
+        process.env['default-num3'] = '300';
+
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        const freshJSON = c.toJSON({attachState: true});
+        await c.load();
+        chai.expect(c.toJSON()).to.deep.equal({num: 100, num2: 3, num3: 4, num4: 40, str: 'env', sub: {a: 31}});
+        chai.expect(c.__defaults).to.deep.equal({num: 5, num2: 200, num3: '300', num4: 40, str: 'class', sub: {a: 30}});
+        chai.expect(() => {
+          c.num = 1;
+        }).to.throw(Error, 'readonly');
+
+        c.resetToDefaults();
+        chai.expect(c.toJSON({attachState: true})).to.deep.equal(freshJSON);
+        chai.expect(c.__defaults).to.deep.equal({num: 5, num2: 5, num3: 5, num4: 5, str: 'class', sub: {a: 1}});
+        chai.expect(c.__isDefault()).to.equal(true);
+        c.num = 1;
+        chai.expect(c.num).to.equal(1);
+
+        // the file is not touched
+        chai.expect(JSON.parse(await fsp.readFile(filePath, 'utf8')).num).to.equal(2);
+
+        // and can be loaded again
+        c.loadSync();
+        chai.expect(c.toJSON()).to.deep.equal({num: 100, num2: 3, num3: 4, num4: 40, str: 'env', sub: {a: 31}});
+      });
+
+      it('should give the same state as a new instance for each test', async () => {
+
+        @ConfigClass({configPath: filePath, saveIfNotExist: false})
+        class C {
+          @ConfigProperty()
+          num: number = 5;
+
+          @ConfigProperty()
+          str: string = 'class';
+        }
+
+        await writeConfig();
+        const c = ConfigClassBuilder.attachPrivateInterface(new C());
+        await c.load();
+        c.num = 7;
+
+        for (let i = 0; i < 3; ++i) {
+          c.resetToDefaults();
+          const fresh = ConfigClassBuilder.attachPrivateInterface(new C());
+          chai.expect(c.toJSON({attachState: true})).to.deep.equal(fresh.toJSON({attachState: true}));
+          c.str = 'test ' + i;
+        }
+      });
+    });
+
   });
 
 });

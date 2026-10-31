@@ -618,6 +618,38 @@ export function ConfigClassBase<TAGS extends { [key: string]: any }>(constructor
       return cloned as T & ConfigClassBaseType;
     }
 
+    /**
+     * Takes over the state of a freshly created config (values, defaults, readonly, tags, ...).
+     * Sub configs of the same class are kept (and reset recursively), so references to them stay valid.
+     * Parent and root links of the taken over sub configs are not updated, call __setParentConfig after it.
+     * @param from newly created instance of the same config class
+     */
+    __resetFrom(from: ConfigClassBaseType): void {
+      for (const key of Object.keys(this.__state)) {
+        if (typeof from.__state[key] === 'undefined') {
+          // dynamically added property (GenericConfigType, ConfigMap)
+          delete this.__state[key];
+          if (Object.prototype.hasOwnProperty.call(this, key)) {
+            delete this[key];
+          }
+        }
+      }
+      for (const key of Object.keys(from.__state)) {
+        const current = this.__state[key]?.value;
+        const fresh = from.__state[key].value;
+        if (checkIsConfigType(current) && checkIsConfigType(fresh) &&
+          Object.getPrototypeOf(current) === Object.getPrototypeOf(fresh)) {
+          current.__resetFrom(fresh);
+          this.__state[key] = {...from.__state[key], value: current};
+          continue;
+        }
+        if (!Object.prototype.hasOwnProperty.call(this, key) && Object.prototype.hasOwnProperty.call(from, key)) {
+          Object.defineProperty(this, key, Object.getOwnPropertyDescriptor(from, key));
+        }
+        this.__state[key] = from.__state[key];
+      }
+    }
+
     toJSON(opt?: ToJSONOptions<TAGS>, lazyAttach = false): { [key: string]: any } {
       opt = JSON.parse(JSON.stringify(typeof opt === 'object' ? opt : options, function (this: any, key: string, value: any) {
         // skip the injected node modules of the ConfigClass options

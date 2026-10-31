@@ -67,6 +67,8 @@ export interface IConfigClassPrivateBase<TAGS> extends IConfigClassBase<TAGS> {
 
   __cloneTo(to: IConfigClassPrivateBase<TAGS>): void;
 
+  __resetFrom(from: IConfigClassPrivateBase<TAGS>): void;
+
   toJSON(opt?: ToJSONOptions<TAGS>): { [key: string]: any };
 
   __getENVAliases(): { key: string, alias: string }[];

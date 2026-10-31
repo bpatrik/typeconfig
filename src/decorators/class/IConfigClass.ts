@@ -103,4 +103,11 @@ export interface IConfigClass<TAGS = { [key: string]: any }> extends IConfigClas
   save(pathOverride?: string): Promise<any>;
 
   saveSync(pathOverride?: string): void;
+
+  /**
+   * Resets the config to the state of a newly created instance (the defaults of the class definition).
+   * Values and default overrides loaded from file, cli or env are dropped, readonly flags are cleared.
+   * Does not touch the config file. Sub config objects are kept, dynamically added properties are removed.
+   */
+  resetToDefaults(): void;
 }
